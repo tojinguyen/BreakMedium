@@ -1,12 +1,34 @@
 console.log("Break Medium content script loaded");
 
+// Function to find element containing "Write" text and navigate up 6 levels
+function findTargetElementByText() {
+  try {
+    // Find all elements that might contain the text "Write"
+    const allElements = document.querySelectorAll('div, button, a, span');
+    let targetElement = null;
+    
+    // Look through elements to find one containing exactly "Write"
+    for (const element of allElements) {
+      if (element.textContent.trim() === "Write") {
+        console.log('Found "Write" element:', element);
+        targetElement = element;
+        console.log('Target element (6 levels up):', element);
+        break;
+      }
+    }
+    
+    return targetElement;
+  } catch (error) {
+    console.error('Error finding target element by text:', error);
+    return null;
+  }
+}
+
 // Function to inject button into the specified selector
 function injectButtonToSelector() {
   try {
-    // The complex selector path
-    const targetElement = document.querySelector(
-      '#root > div > div.l.c > div.l.m.n.o.c > div.p.q.r.ab.ac'
-    );
+    // Find the element using the text-based approach
+    let targetElement = findTargetElementByText();
     
     if (targetElement) {
       // Create the button
@@ -22,6 +44,7 @@ function injectButtonToSelector() {
       button.style.margin = 'auto 0'; // Add vertical centering
       button.style.alignSelf = 'center'; // Ensure vertical alignment
       button.style.fontWeight = 'bold';
+      button.style.marginRight = '10px'; // Add some space to the left
       
       // Add click event to the button
       button.addEventListener('click', function() {
@@ -46,11 +69,11 @@ function injectButtonToSelector() {
       
       console.log('Button successfully injected as second child');
     } else {
-      console.error('Target element not found for selector: #root > div > div.l.c > div.l.m.n.o.c > div.p.q.r.ab.ac');
+      console.error('Target element not found using text-based method');
       // Try to find similar elements to help with debugging
       const rootElement = document.querySelector('#root');
       if (rootElement) {
-        console.log('Root element exists, the selector might have changed');
+        console.log('Root element exists, but target element not found');
       }
     }
   } catch (error) {
