@@ -27,12 +27,19 @@ function findTargetElementByText() {
 // Function to inject button into the specified selector
 function injectButtonToSelector() {
   try {
+    // Check if button already exists
+    if (document.getElementById('break-medium-button')) {
+      console.log('Break Medium button already exists, not adding another one');
+      return;
+    }
+
     // Find the element using the text-based approach
     let targetElement = findTargetElementByText();
     
     if (targetElement) {
       // Create the button
       const button = document.createElement('button');
+      button.id = 'break-medium-button'; // Add unique ID to the button
       button.textContent = 'Break Medium';
       button.style.padding = '8px 16px';
       button.style.backgroundColor = '#1a8917';
@@ -101,9 +108,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 document.addEventListener('DOMContentLoaded', function() {
   // Try immediately after DOM is loaded
   injectButtonToSelector();
-  
+  console.log('Attempting to inject button on DOMContentLoaded');
   // And also try after a short delay to ensure the target element is rendered
   setTimeout(injectButtonToSelector, 2000);
+  
+  // Add an additional attempt with a longer delay to be extra certain
+  setTimeout(injectButtonToSelector, 5000);
   
   // Set up a mutation observer to watch for changes in the DOM
   const observer = new MutationObserver(function(mutations) {
