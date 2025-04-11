@@ -18,7 +18,9 @@ function injectButtonToSelector() {
       button.style.border = 'none';
       button.style.borderRadius = '4px';
       button.style.cursor = 'pointer';
-      button.style.marginTop = '10px';
+      button.style.marginTop = '0'; // Changed from 10px to 0
+      button.style.margin = 'auto 0'; // Add vertical centering
+      button.style.alignSelf = 'center'; // Ensure vertical alignment
       button.style.fontWeight = 'bold';
       
       // Add click event to the button
