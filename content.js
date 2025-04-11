@@ -1,58 +1,5 @@
 console.log("Break Medium content script loaded");
 
-function injectBreakMediumButton() {
-  const button = document.createElement('button');
-  button.textContent = 'Break Medium';
-  button.style.position = 'fixed';
-  button.style.bottom = '20px';
-  button.style.right = '20px';
-  button.style.zIndex = '9999';
-  button.style.padding = '8px 16px';
-  button.style.backgroundColor = '#4285f4';
-  button.style.color = 'white';
-  button.style.border = 'none';
-  button.style.borderRadius = '4px';
-  button.style.cursor = 'pointer';
-  button.style.fontWeight = 'bold';
-  
-  // Add click event listener
-  button.addEventListener('click', function() {
-    // Get current URL and open freedium in new tab
-    const currentUrl = window.location.href;
-    const freediumUrl = 'https://freedium.cfd/' + currentUrl;
-    window.open(freediumUrl, '_blank');
-  });
-  
-  // Add button to the page
-  document.body.appendChild(button);
-}
-
-// Execute after the page has fully loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', injectBreakMediumButton);
-} else {
-  injectBreakMediumButton();
-}
-
-// Initialize when the page loads
-// Removing the load event listener that called addOpenInNewTabButton
-
-// Listen for messages from popup
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  if (request.action === "performAction") {
-    // Get current URL and create freedium URL
-    const currentUrl = window.location.href;
-    const freediumUrl = 'https://freedium.cfd/' + currentUrl;
-    
-    // Send the URL back to popup
-    sendResponse({status: "Redirecting to: " + freediumUrl});
-  }
-  if (request.action === "injectButton") {
-    injectButtonToSelector();
-  }
-  return true;
-});
-
 // Function to inject button into the specified selector
 function injectButtonToSelector() {
   try {
@@ -108,6 +55,22 @@ function injectButtonToSelector() {
     console.error('Error injecting button:', error);
   }
 }
+
+// Listen for messages from popup
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  if (request.action === "performAction") {
+    // Get current URL and create freedium URL
+    const currentUrl = window.location.href;
+    const freediumUrl = 'https://freedium.cfd/' + currentUrl;
+    
+    // Send the URL back to popup
+    sendResponse({status: "Redirecting to: " + freediumUrl});
+  }
+  if (request.action === "injectButton") {
+    injectButtonToSelector();
+  }
+  return true;
+});
 
 // Try to inject the button when the page loads and also add a retry mechanism
 document.addEventListener('DOMContentLoaded', function() {
