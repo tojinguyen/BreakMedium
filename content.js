@@ -1,3 +1,5 @@
+console.log("Break Medium content script loaded");
+
 // Function to inject button into the specified selector
 function injectButtonToSelector() {
   try {
@@ -20,7 +22,6 @@ function injectButtonToSelector() {
       button.style.margin = 'auto 0'; // Add vertical centering
       button.style.alignSelf = 'center'; // Ensure vertical alignment
       button.style.fontWeight = 'bold';
-      button.style.marginRight = '10px'; // Add some space from the left side
       
       // Add click event to the button
       button.addEventListener('click', function() {
@@ -43,6 +44,7 @@ function injectButtonToSelector() {
         targetElement.appendChild(button);
       }
       
+      console.log('Button successfully injected as second child');
     } else {
       console.error('Target element not found for selector: #root > div > div.l.c > div.l.m.n.o.c > div.p.q.r.ab.ac');
       // Try to find similar elements to help with debugging
