@@ -30,7 +30,7 @@ function injectButtonToSelector() {
     // Check if button already exists
     if (document.getElementById('break-medium-button')) {
       console.log('Break Medium button already exists, not adding another one');
-      return;
+      return true; // Return true to indicate success
     }
 
     // Find the element using the text-based approach
@@ -75,6 +75,7 @@ function injectButtonToSelector() {
       }
       
       console.log('Button successfully injected as second child');
+      return true; // Return true to indicate success
     } else {
       console.error('Target element not found using text-based method');
       // Try to find similar elements to help with debugging
@@ -82,9 +83,11 @@ function injectButtonToSelector() {
       if (rootElement) {
         console.log('Root element exists, but target element not found');
       }
+      return false; // Return false to indicate failure
     }
   } catch (error) {
     console.error('Error injecting button:', error);
+    return false; // Return false to indicate failure
   }
 }
 
@@ -104,27 +107,119 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   return true;
 });
 
-// Try to inject the button when the page loads and also add a retry mechanism
-document.addEventListener('DOMContentLoaded', function() {
-  // Try immediately after DOM is loaded
-  injectButtonToSelector();
-  console.log('Attempting to inject button on DOMContentLoaded');
-  // And also try after a short delay to ensure the target element is rendered
-  setTimeout(injectButtonToSelector, 2000);
+// Function to check if button still exists in DOM
+function isButtonStillPresent() {
+  return !!document.getElementById('break-medium-button');
+}
+
+// Function to continuously attempt injection until successful
+function startContinuousInjection() {
+  console.log('Starting continuous button injection monitoring');
   
-  // Add an additional attempt with a longer delay to be extra certain
-  setTimeout(injectButtonToSelector, 5000);
+  // Try to inject every second for up to 60 seconds (1 minute)
+  let attempts = 0;
+  let maxAttempts = 60;
   
-  // Set up a mutation observer to watch for changes in the DOM
+  let injectionInterval = setInterval(() => {
+    attempts++;
+    console.log(`Attempting to inject button (attempt ${attempts}/${maxAttempts})`);
+    
+    if (injectButtonToSelector() || attempts >= maxAttempts) {
+      console.log('Button successfully injected or max attempts reached, stopping continuous injection');
+      clearInterval(injectionInterval);
+    }
+  }, 1000); // Try every second
+  
+  // Set up a persistent mutation observer to monitor DOM changes
+  setupPersistentObserver();
+}
+
+// Set up a persistent observer that continues monitoring even after successful injection
+function setupPersistentObserver() {
+  console.log('Setting up persistent DOM observer');
+  
   const observer = new MutationObserver(function(mutations) {
-    injectButtonToSelector();
+    // If button is missing, try to inject it again
+    if (!isButtonStillPresent()) {
+      console.log('Button disappeared, attempting to reinject');
+      injectButtonToSelector();
+    }
   });
   
   // Start observing the document body for DOM changes
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.body, { 
+    childList: true, 
+    subtree: true,
+    attributes: true,
+    characterData: true
+  });
   
-  // Stop the observer after 10 seconds to avoid unnecessary processing
-  setTimeout(function() {
-    observer.disconnect();
-  }, 10000);
+  // Also monitor for URL changes (SPA navigation)
+  monitorURLChanges();
+}
+
+// Monitor for URL changes in single page applications
+function monitorURLChanges() {
+  let lastUrl = location.href;
+  
+  // Create a new observer to watch for URL changes
+  const urlObserver = new MutationObserver(() => {
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      console.log('URL changed, checking if button needs to be reinjected');
+      
+      // Wait a bit for the new page to load its elements
+      setTimeout(() => {
+        if (!isButtonStillPresent()) {
+          console.log('Button not found after URL change, injecting again');
+          injectButtonToSelector();
+        }
+      }, 1500);
+    }
+  });
+  
+  // Start observing
+  urlObserver.observe(document, { subtree: true, childList: true });
+  
+  // Also hook into history API
+  const originalPushState = history.pushState;
+  history.pushState = function() {
+    originalPushState.apply(this, arguments);
+    
+    // Wait a bit for the new page to load its elements
+    setTimeout(() => {
+      if (!isButtonStillPresent()) {
+        console.log('History API navigation detected, injecting button');
+        injectButtonToSelector();
+      }
+    }, 1500);
+  };
+}
+
+// Try to inject the button when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+  // Try immediately after DOM is loaded
+  if (!injectButtonToSelector()) {
+    // If initial injection fails, start continuous injection
+    console.log('Initial injection failed, starting continuous injection');
+    startContinuousInjection();
+  } else {
+    // Even if initial injection succeeds, set up persistent monitoring
+    setupPersistentObserver();
+  }
+});
+
+// Also try when the window has fully loaded (including images)
+window.addEventListener('load', function() {
+  if (!isButtonStillPresent()) {
+    console.log('Button not found after window load, trying injection again');
+    if (!injectButtonToSelector()) {
+      startContinuousInjection();
+    } else {
+      setupPersistentObserver();
+    }
+  } else {
+    // Button exists but still set up persistent monitoring
+    setupPersistentObserver();
+  }
 });
