@@ -38,6 +38,26 @@ function findTargetElementByText() {
   }
 }
 
+// Function to check if the article is premium
+function isPremiumArticle() {
+  try {
+    // Look for specific patterns or elements that indicate a premium article
+    const premiumBadge = document.querySelector('div[aria-label="Member-only story"]') || 
+                         Array.from(document.querySelectorAll('span, p')).find(el => el.textContent.includes("Member-only story") || el.textContent.includes("Get unlimited access"));
+
+    if (premiumBadge) {
+      console.log('Premium article detected:', premiumBadge);
+      return true;
+    } else {
+      console.log('Non-premium article detected');
+      return false;
+    }
+  } catch (error) {
+    console.error('Error detecting premium article:', error);
+    return false;
+  }
+}
+
 // Function to inject button into the specified selector
 function injectButtonToSelector() {
   try {
@@ -46,6 +66,12 @@ function injectButtonToSelector() {
     if (currentUrl === "https://medium.com/" || currentUrl === "https://www.medium.com/") {
       console.log("Medium homepage detected, skipping button injection");
       return false; // Do not inject on the homepage
+    }
+
+    // Use the updated premium article detection logic
+    if (!isPremiumArticle()) {
+      console.log('Non-premium article detected, skipping button injection');
+      return false; // Do not inject button for non-premium articles
     }
 
     // Check if button already exists
@@ -73,7 +99,8 @@ function injectButtonToSelector() {
       button.style.alignSelf = 'center'; // Ensure vertical alignment
       button.style.fontWeight = 'bold';
       button.style.marginRight = '10px'; // Add some space to the left
-      
+      button.style.transition = 'filter 0.3s ease';
+
       // Add click event to the button
       button.addEventListener('click', function() {
         // Open Freedium in the same tab

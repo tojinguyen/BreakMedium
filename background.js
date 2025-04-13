@@ -14,35 +14,44 @@ chrome.runtime.onInstalled.addListener(function() {
 
 // Example: Listen for messages from content or popup scripts
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  if (request.action === "getSettings") {
-    chrome.storage.local.get("settings", function(data) {
-      sendResponse({ settings: data.settings });
-    });
-    return true; // Required for async sendResponse
-  } else if (request.action === "openInNewTab") {
-    // Open the URL in a new tab
-    chrome.tabs.create({ url: request.url }, () => {
+  try {
+    if (request.action === "getSettings") {
+      chrome.storage.local.get("settings", function(data) {
+        sendResponse({ settings: data.settings });
+      });
+      return true; // Required for async sendResponse
+    } else if (request.action === "openInNewTab") {
+      chrome.tabs.create({ url: request.url }, () => {
+        sendResponse({ success: true });
+      });
+      return true; // Required for async response
+    } else if (request.action === "buttonInjected") {
+      console.log("Button injection confirmed by content script.");
       sendResponse({ success: true });
-    });
-    return true; // Required for async response
-  } else if (request.action === "buttonInjected") {
-    sendResponse({ success: true });
-    return true; // Required for async response
+      return true; // Required for async response
+    }
+    sendResponse({ error: "Unknown action" });
+  } catch (error) {
+    console.error("Error handling message:", error);
+    sendResponse({ error: "Internal error occurred" });
   }
-  // Ensure sendResponse is called for unhandled actions
-  sendResponse({ error: "Unknown action" });
   return false; // No async response needed
 });
 
-// Listen for tab updates
+// Optimize tab update listener to avoid redundant injections
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // Check if the page is fully loaded and is a Medium site
-  if (changeInfo.status === 'complete' && 
-     (tab.url.includes('medium.com') || tab.url.includes('towardsdatascience.com'))) {
-    
-    console.log("Medium page detected, injecting automatically:", tab.url);
-    
-    // Automatically send the injection message to the content script
-    chrome.tabs.sendMessage(tabId, { action: "injectButton" });
+  if (changeInfo.status === 'complete' && tab.url) {
+    const isMediumSite = tab.url.includes('medium.com') || tab.url.includes('towardsdatascience.com');
+    if (isMediumSite) {
+      console.log("Medium page detected, injecting automatically:", tab.url);
+      chrome.tabs.sendMessage(tabId, { action: "injectButton" }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.warn("Error sending message to content script:", chrome.runtime.lastError.message);
+        } else if (response && response.success) {
+          console.log("Button injection successful:", tab.url);
+        }
+      });
+    }
   }
 });
+
