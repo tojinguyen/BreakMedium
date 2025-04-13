@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <title>Break Medium</title>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -12,15 +13,22 @@
       <h2>Break Medium</h2>
       <p>Access Medium articles without limits</p>
     </div>
-    <button id="breakMediumButton" title="Redirect to Freedium for unlimited access">
+    
+    <button 
+      id="breakMediumButton" 
+      aria-label="Break Medium - Redirect to Freedium for unlimited access"
+    >
       Break Medium
       <span class="tooltip">Redirects to Freedium for unlimited access</span>
     </button>
-    <div id="status"></div>
+    
+    <div id="status" aria-live="polite"></div>
+    
     <div class="footer">
       <p>Made with ❤️ for better reading</p>
     </div>
   </div>
+  
   <script src="popup.js"></script>
 </body>
 </html>

@@ -1,156 +1,312 @@
+/**
+ * BreakMedium content script
+ * Handles DOM manipulation and button injection on Medium pages
+ */
+
 console.log("Break Medium content script loaded");
 
-// Function to find element containing "Write" text and navigate up 6 levels
+// Configuration
+const CONFIG = {
+  buttonId: 'break-medium-button',
+  injectionAttempts: 60,
+  injectionInterval: 1000, // 1 second
+  urlChangeDelay: 1500,
+  buttonStyle: {
+    padding: '8px 16px',
+    backgroundColor: '#1a8917',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    marginTop: '0',
+    margin: 'auto 0',
+    alignSelf: 'center',
+    fontWeight: 'bold',
+    marginRight: '10px',
+    transition: 'filter 0.3s ease'
+  }
+};
+
+/**
+ * Find target element for button injection by looking for "Write" text
+ * @returns {HTMLElement|null} The target element or null if not found
+ */
 function findTargetElementByText() {
   try {
     // Find all elements that might contain the text "Write"
     const allElements = document.querySelectorAll('div, button, a, span');
-    let targetElement = null;
-
-    // Look through elements to find one containing exactly "Write"
+    
+    // Look for element with exact "Write" text content
     for (const element of allElements) {
       if (element.textContent.trim() === "Write") {
         console.log('Found "Write" element:', element);
-        targetElement = element.closest('div'); // Navigate up to a parent container
+        const targetElement = element.closest('div');
         console.log('Target element (closest container):', targetElement);
-        break;
+        return targetElement;
       }
     }
 
-    // Fallback: Try to find a common parent element if "Write" is not found
-    if (!targetElement) {
-      console.warn('Primary method failed. Attempting fallback...');
-      const fallbackElement = document.querySelector('[aria-label="Write"]') || document.querySelector('[data-action="write"]');
-      if (fallbackElement) {
-        console.log('Fallback element found:', fallbackElement);
-        targetElement = fallbackElement.closest('div');
-      }
+    // Fallback methods if "Write" is not found
+    console.warn('Primary method failed. Attempting fallback...');
+    const fallbackElement = document.querySelector('[aria-label="Write"]') || 
+                            document.querySelector('[data-action="write"]');
+    
+    if (fallbackElement) {
+      console.log('Fallback element found:', fallbackElement);
+      return fallbackElement.closest('div');
     }
 
-    if (!targetElement) {
-      console.error('Target element could not be found using any method.');
-    }
-
-    return targetElement;
+    console.error('Target element could not be found using any method.');
+    return null;
   } catch (error) {
     console.error('Error finding target element by text:', error);
     return null;
   }
 }
 
-// Function to check if the article is premium
+/**
+ * Checks if the current article is a premium Medium article
+ * @returns {boolean} True if premium article detected
+ */
 function isPremiumArticle() {
   try {
-    // Look for specific patterns or elements that indicate a premium article
+    // Look for premium article indicators
     const premiumBadge = document.querySelector('div[aria-label="Member-only story"]') || 
-                         Array.from(document.querySelectorAll('span, p')).find(el => el.textContent.includes("Member-only story") || el.textContent.includes("Get unlimited access"));
+                         Array.from(document.querySelectorAll('span, p')).find(el => 
+                           el.textContent.includes("Member-only story") || 
+                           el.textContent.includes("Get unlimited access"));
 
     if (premiumBadge) {
       console.log('Premium article detected:', premiumBadge);
       return true;
-    } else {
-      console.log('Non-premium article detected');
-      return false;
-    }
+    } 
+    
+    console.log('Non-premium article detected');
+    return false;
   } catch (error) {
     console.error('Error detecting premium article:', error);
     return false;
   }
 }
 
-// Function to inject button into the specified selector
+/**
+ * Creates a button element with proper styling
+ * @returns {HTMLButtonElement} The created button
+ */
+function createButton() {
+  const button = document.createElement('button');
+  button.id = CONFIG.buttonId;
+  button.textContent = 'Break Medium';
+  
+  // Apply styles from config
+  Object.assign(button.style, CONFIG.buttonStyle);
+  
+  // Add click event to redirect to Freedium
+  button.addEventListener('click', function() {
+    const freediumUrl = 'https://freedium.cfd/' + window.location.href;
+    window.location.href = freediumUrl;
+  });
+  
+  return button;
+}
+
+/**
+ * Injects button into the page
+ * @returns {boolean} True if injection was successful
+ */
 function injectButtonToSelector() {
   try {
-    // Check if the current page is the Medium homepage
+    // Skip injection on Medium homepage
     const currentUrl = window.location.href;
     if (currentUrl === "https://medium.com/" || currentUrl === "https://www.medium.com/") {
       console.log("Medium homepage detected, skipping button injection");
-      return false; // Do not inject on the homepage
+      return false;
     }
 
-    // Use the updated premium article detection logic
+    // Skip injection for non-premium articles
     if (!isPremiumArticle()) {
       console.log('Non-premium article detected, skipping button injection');
-      return false; // Do not inject button for non-premium articles
+      return false;
     }
 
     // Check if button already exists
-    if (document.getElementById('break-medium-button')) {
-      console.log('Break Medium button already exists, not adding another one');
-      return true; // Return true to indicate success
+    if (document.getElementById(CONFIG.buttonId)) {
+      console.log('Break Medium button already exists');
+      return true;
     }
 
-    // Find the element using the text-based approach
-    let targetElement = findTargetElementByText();
+    // Find target element and inject button
+    const targetElement = findTargetElementByText();
+    if (!targetElement) {
+      console.error('Target element not found for button injection');
+      return false;
+    }
     
-    if (targetElement) {
-      // Create the button
-      const button = document.createElement('button');
-      button.id = 'break-medium-button'; // Add unique ID to the button
-      button.textContent = 'Break Medium';
-      button.style.padding = '8px 16px';
-      button.style.backgroundColor = '#1a8917';
-      button.style.color = 'white';
-      button.style.border = 'none';
-      button.style.borderRadius = '4px';
-      button.style.cursor = 'pointer';
-      button.style.marginTop = '0'; // Changed from 10px to 0
-      button.style.margin = 'auto 0'; // Add vertical centering
-      button.style.alignSelf = 'center'; // Ensure vertical alignment
-      button.style.fontWeight = 'bold';
-      button.style.marginRight = '10px'; // Add some space to the left
-      button.style.transition = 'filter 0.3s ease';
-
-      // Add click event to the button
-      button.addEventListener('click', function() {
-        // Open Freedium in the same tab
-        const freediumUrl = 'https://freedium.cfd/' + window.location.href;
-        window.location.href = freediumUrl;
-      });
-      
-      // Make sure to insert the button as the second child
-      if (targetElement.childNodes.length >= 1) {
-        // If there's at least one child, insert after the first one
-        if (targetElement.childNodes[0].nextSibling) {
-          targetElement.insertBefore(button, targetElement.childNodes[0].nextSibling);
-        } else {
-          // If there's only one child, just append it
-          targetElement.appendChild(button);
-        }
+    const button = createButton();
+    
+    // Insert button as second child if possible
+    if (targetElement.childNodes.length >= 1) {
+      if (targetElement.childNodes[0].nextSibling) {
+        targetElement.insertBefore(button, targetElement.childNodes[0].nextSibling);
       } else {
-        // If there are no children, just append it
         targetElement.appendChild(button);
       }
-      
-      console.log('Button successfully injected as second child');
-
-      // Notify background script about successful injection
-      chrome.runtime.sendMessage({ action: "buttonInjected" });
-
-      return true; // Return true to indicate success
     } else {
-      console.error('Target element not found using text-based method');
-      // Try to find similar elements to help with debugging
-      const rootElement = document.querySelector('#root');
-      if (rootElement) {
-        console.log('Root element exists, but target element not found');
-      }
-      return false; // Return false to indicate failure
+      targetElement.appendChild(button);
     }
+    
+    console.log('Button successfully injected');
+    
+    // Notify background script
+    chrome.runtime.sendMessage({ action: "buttonInjected" });
+    return true;
+    
   } catch (error) {
     console.error('Error injecting button:', error);
-    return false; // Return false to indicate failure
+    return false;
   }
 }
 
-// Listen for messages from popup
+/**
+ * Checks if button is currently in the DOM
+ * @returns {boolean} True if button exists
+ */
+function isButtonStillPresent() {
+  return !!document.getElementById(CONFIG.buttonId);
+}
+
+/**
+ * Attempts to inject button repeatedly until successful
+ */
+function startContinuousInjection() {
+  console.log('Starting continuous button injection monitoring');
+  
+  let attempts = 0;
+  
+  const injectionInterval = setInterval(() => {
+    attempts++;
+    console.log(`Attempting to inject button (attempt ${attempts}/${CONFIG.injectionAttempts})`);
+    
+    if (injectButtonToSelector() || attempts >= CONFIG.injectionAttempts) {
+      console.log('Button successfully injected or max attempts reached');
+      clearInterval(injectionInterval);
+    }
+  }, CONFIG.injectionInterval);
+  
+  // Set up persistent monitoring
+  setupPersistentObserver();
+}
+
+/**
+ * Set up mutation observer to continually monitor DOM for changes
+ */
+function setupPersistentObserver() {
+  console.log('Setting up persistent DOM observer');
+  
+  const observer = new MutationObserver(function() {
+    if (!isButtonStillPresent()) {
+      console.log('Button disappeared, attempting to reinject');
+      injectButtonToSelector();
+    }
+  });
+  
+  // Start observing the document body
+  observer.observe(document.body, { 
+    childList: true, 
+    subtree: true,
+    attributes: true,
+    characterData: true
+  });
+  
+  // Monitor URL changes for SPAs
+  monitorURLChanges();
+}
+
+/**
+ * Monitor URL changes in single page applications
+ */
+function monitorURLChanges() {
+  let lastUrl = location.href;
+  
+  // Create observer for URL changes
+  const urlObserver = new MutationObserver(() => {
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      console.log('URL changed, checking if button needs to be reinjected');
+      
+      setTimeout(() => {
+        if (!isButtonStillPresent()) {
+          console.log('Button not found after URL change, injecting again');
+          injectButtonToSelector();
+        }
+      }, CONFIG.urlChangeDelay);
+    }
+  });
+  
+  // Start observing
+  urlObserver.observe(document, { subtree: true, childList: true });
+  
+  // Hook into history API
+  const originalPushState = history.pushState;
+  history.pushState = function() {
+    originalPushState.apply(this, arguments);
+    
+    setTimeout(() => {
+      if (!isButtonStillPresent()) {
+        console.log('History API navigation detected, injecting button');
+        injectButtonToSelector();
+      }
+    }, CONFIG.urlChangeDelay);
+  };
+}
+
+/**
+ * Cross-browser compatible media query listener
+ * @param {string} mediaQueryString - Media query to listen for
+ * @param {function} callback - Function to call on matches
+ * @returns {function} Cleanup function
+ */
+function addMediaQueryListener(mediaQueryString, callback) {
+  const mediaQuery = window.matchMedia(mediaQueryString);
+  
+  // Use modern approach if supported
+  if (mediaQuery.addEventListener) {
+    mediaQuery.addEventListener('change', callback);
+    return () => mediaQuery.removeEventListener('change', callback);
+  } 
+  // Fall back to deprecated method
+  else {
+    mediaQuery.addListener(callback);
+    return () => mediaQuery.removeListener(callback);
+  }
+}
+
+/**
+ * Set up responsive styles for the button
+ */
+function setupResponsiveButtonStyles() {
+  // Handle mobile/small screen layouts
+  addMediaQueryListener('(max-width: 767px)', (event) => {
+    const button = document.getElementById(CONFIG.buttonId);
+    if (button) {
+      if (event.matches) {
+        // Mobile styles
+        button.style.fontSize = '14px';
+        button.style.padding = '6px 12px';
+      } else {
+        // Desktop styles
+        button.style.fontSize = 'inherit';
+        button.style.padding = '8px 16px';
+      }
+    }
+  });
+}
+
+// Message listener
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.action === "performAction") {
-    // Get current URL and create freedium URL
     const currentUrl = window.location.href;
     const freediumUrl = 'https://freedium.cfd/' + currentUrl;
-    
-    // Send the URL back to popup
     sendResponse({status: "Redirecting to: " + freediumUrl});
   }
   if (request.action === "injectButton") {
@@ -159,109 +315,18 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   return true;
 });
 
-// Function to check if button still exists in DOM
-function isButtonStillPresent() {
-  return !!document.getElementById('break-medium-button');
-}
-
-// Function to continuously attempt injection until successful
-function startContinuousInjection() {
-  console.log('Starting continuous button injection monitoring');
-  
-  // Try to inject every second for up to 60 seconds (1 minute)
-  let attempts = 0;
-  let maxAttempts = 60;
-  
-  let injectionInterval = setInterval(() => {
-    attempts++;
-    console.log(`Attempting to inject button (attempt ${attempts}/${maxAttempts})`);
-    
-    if (injectButtonToSelector() || attempts >= maxAttempts) {
-      console.log('Button successfully injected or max attempts reached, stopping continuous injection');
-      clearInterval(injectionInterval);
-    }
-  }, 1000); // Try every second
-  
-  // Set up a persistent mutation observer to monitor DOM changes
-  setupPersistentObserver();
-}
-
-// Set up a persistent observer that continues monitoring even after successful injection
-function setupPersistentObserver() {
-  console.log('Setting up persistent DOM observer');
-  
-  const observer = new MutationObserver(function(mutations) {
-    // If button is missing, try to inject it again
-    if (!isButtonStillPresent()) {
-      console.log('Button disappeared, attempting to reinject');
-      injectButtonToSelector();
-    }
-  });
-  
-  // Start observing the document body for DOM changes
-  observer.observe(document.body, { 
-    childList: true, 
-    subtree: true,
-    attributes: true,
-    characterData: true
-  });
-  
-  // Also monitor for URL changes (SPA navigation)
-  monitorURLChanges();
-}
-
-// Monitor for URL changes in single page applications
-function monitorURLChanges() {
-  let lastUrl = location.href;
-  
-  // Create a new observer to watch for URL changes
-  const urlObserver = new MutationObserver(() => {
-    if (location.href !== lastUrl) {
-      lastUrl = location.href;
-      console.log('URL changed, checking if button needs to be reinjected');
-      
-      // Wait a bit for the new page to load its elements
-      setTimeout(() => {
-        if (!isButtonStillPresent()) {
-          console.log('Button not found after URL change, injecting again');
-          injectButtonToSelector();
-        }
-      }, 1500);
-    }
-  });
-  
-  // Start observing
-  urlObserver.observe(document, { subtree: true, childList: true });
-  
-  // Also hook into history API
-  const originalPushState = history.pushState;
-  history.pushState = function() {
-    originalPushState.apply(this, arguments);
-    
-    // Wait a bit for the new page to load its elements
-    setTimeout(() => {
-      if (!isButtonStillPresent()) {
-        console.log('History API navigation detected, injecting button');
-        injectButtonToSelector();
-      }
-    }, 1500);
-  };
-}
-
-// Try to inject the button when the page loads
+// Initialization when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  // Try immediately after DOM is loaded
   if (!injectButtonToSelector()) {
-    // If initial injection fails, start continuous injection
     console.log('Initial injection failed, starting continuous injection');
     startContinuousInjection();
   } else {
-    // Even if initial injection succeeds, set up persistent monitoring
     setupPersistentObserver();
+    setupResponsiveButtonStyles();
   }
 });
 
-// Also try when the window has fully loaded (including images)
+// Also try when window is fully loaded
 window.addEventListener('load', function() {
   if (!isButtonStillPresent()) {
     console.log('Button not found after window load, trying injection again');
@@ -269,10 +334,10 @@ window.addEventListener('load', function() {
       startContinuousInjection();
     } else {
       setupPersistentObserver();
+      setupResponsiveButtonStyles();
     }
   } else {
-    // Button exists but still set up persistent monitoring
     setupPersistentObserver();
+    setupResponsiveButtonStyles();
   }
 });
-
