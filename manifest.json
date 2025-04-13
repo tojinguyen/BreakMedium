@@ -14,7 +14,7 @@
     "48": "images/icon48.png",
     "128": "images/icon128.png"
   },
-  "permissions": ["storage", "tabs", "activeTab"],
+  "permissions": ["storage", "tabs", "activeTab", "notifications"],
   "host_permissions": ["*://*.medium.com/*", "*://*.towardsdatascience.com/*"],
   "background": {
     "service_worker": "background.js"

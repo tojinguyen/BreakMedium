@@ -3,81 +3,23 @@
 <head>
   <title>Break Medium</title>
   <meta charset="UTF-8">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    body {
-      width: 300px;
-      padding: 15px;
-      font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f8f8f8;
-      color: #333;
-      margin: 0;
-      overflow: hidden;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .header {
-      text-align: center;
-      margin-bottom: 15px;
-      border-bottom: 1px solid #eaeaea;
-      padding-bottom: 10px;
-    }
-    
-    h2 {
-      color: #03a87c;
-      margin: 0 0 5px 0;
-      font-weight: 600;
-    }
-    
-    p {
-      margin: 5px 0;
-      color: #666;
-      font-size: 14px;
-    }
-    
-    .logo {
-      width: 120px;
-      height: 120px;
-      margin: 0 auto 10px;
-      display: block;
-    }
-    
-    button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 15px;
-      background-color: #03a87c;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 15px;
-      font-weight: 500;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    
-    button:hover {
-      background-color: #027e5b;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    
-    .footer {
-      font-size: 12px;
-      text-align: center;
-      margin-top: 15px;
-      color: #999;
-    }
-  </style>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="header">
-    <img src="images/icon48.png" alt="Break Medium Logo" class="logo">
-    <h2>Break Medium</h2>
-    <p>Đọc bài viết Medium không bị giới hạn</p>
+  <div class="container">
+    <div class="header">
+      <img src="images/icon48.png" alt="Break Medium Logo" class="logo">
+      <h2>Break Medium</h2>
+      <p>Access Medium articles without limits</p>
+    </div>
+    <button id="breakMediumButton" title="Redirect to Freedium for unlimited access">
+      Break Medium
+      <span class="tooltip">Redirects to Freedium for unlimited access</span>
+    </button>
+    <div id="status"></div>
+    <div class="footer">
+      <p>Made with ❤️ for better reading</p>
+    </div>
   </div>
   <script src="popup.js"></script>
 </body>

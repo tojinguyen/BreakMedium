@@ -16,20 +16,22 @@ chrome.runtime.onInstalled.addListener(function() {
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.action === "getSettings") {
     chrome.storage.local.get("settings", function(data) {
-      sendResponse({settings: data.settings});
+      sendResponse({ settings: data.settings });
     });
     return true; // Required for async sendResponse
-  }
-});
-
-// Listen for messages from content scripts or popup
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "openInNewTab") {
+  } else if (request.action === "openInNewTab") {
     // Open the URL in a new tab
-    chrome.tabs.create({ url: message.url });
+    chrome.tabs.create({ url: request.url }, () => {
+      sendResponse({ success: true });
+    });
+    return true; // Required for async response
+  } else if (request.action === "buttonInjected") {
     sendResponse({ success: true });
+    return true; // Required for async response
   }
-  return true; // Required for async response
+  // Ensure sendResponse is called for unhandled actions
+  sendResponse({ error: "Unknown action" });
+  return false; // No async response needed
 });
 
 // Listen for tab updates

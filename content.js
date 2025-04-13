@@ -6,17 +6,31 @@ function findTargetElementByText() {
     // Find all elements that might contain the text "Write"
     const allElements = document.querySelectorAll('div, button, a, span');
     let targetElement = null;
-    
+
     // Look through elements to find one containing exactly "Write"
     for (const element of allElements) {
       if (element.textContent.trim() === "Write") {
         console.log('Found "Write" element:', element);
-        targetElement = element;
-        console.log('Target element (6 levels up):', element);
+        targetElement = element.closest('div'); // Navigate up to a parent container
+        console.log('Target element (closest container):', targetElement);
         break;
       }
     }
-    
+
+    // Fallback: Try to find a common parent element if "Write" is not found
+    if (!targetElement) {
+      console.warn('Primary method failed. Attempting fallback...');
+      const fallbackElement = document.querySelector('[aria-label="Write"]') || document.querySelector('[data-action="write"]');
+      if (fallbackElement) {
+        console.log('Fallback element found:', fallbackElement);
+        targetElement = fallbackElement.closest('div');
+      }
+    }
+
+    if (!targetElement) {
+      console.error('Target element could not be found using any method.');
+    }
+
     return targetElement;
   } catch (error) {
     console.error('Error finding target element by text:', error);
@@ -62,9 +76,9 @@ function injectButtonToSelector() {
       
       // Add click event to the button
       button.addEventListener('click', function() {
-        // Open Freedium in a new tab
+        // Open Freedium in the same tab
         const freediumUrl = 'https://freedium.cfd/' + window.location.href;
-        window.open(freediumUrl, '_blank');
+        window.location.href = freediumUrl;
       });
       
       // Make sure to insert the button as the second child
@@ -82,6 +96,10 @@ function injectButtonToSelector() {
       }
       
       console.log('Button successfully injected as second child');
+
+      // Notify background script about successful injection
+      chrome.runtime.sendMessage({ action: "buttonInjected" });
+
       return true; // Return true to indicate success
     } else {
       console.error('Target element not found using text-based method');
