@@ -23,9 +23,52 @@ const CONFIG = {
     alignSelf: 'center',
     fontWeight: 'bold',
     marginRight: '10px',
-    transition: 'filter 0.3s ease'
+    transition: 'all 0.3s ease',
+    opacity: '0',
+    transform: 'scale(0.9)',
+    animation: 'breakMediumButtonAppear 0.5s ease forwards'
+  },
+  buttonHoverStyle: {
+    filter: 'brightness(110%)',
+    transform: 'scale(1.05)'
   }
 };
+
+// Inject animation keyframes to the page
+function injectAnimationStyles() {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = `
+    @keyframes breakMediumButtonAppear {
+      0% {
+        opacity: 0.7;
+        transform: scale(0.95);
+      }
+      50% {
+        opacity: 0.9;
+        transform: scale(1.02);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    #${CONFIG.buttonId} {
+      animation: breakMediumButtonAppear 0.3s ease forwards;
+    }
+    
+    #${CONFIG.buttonId}:hover {
+      filter: brightness(105%);
+      transform: scale(1.02);
+    }
+    
+    #${CONFIG.buttonId}:active {
+      transform: scale(0.98);
+      filter: brightness(97%);
+    }
+  `;
+  document.head.appendChild(styleElement);
+}
 
 /**
  * Find target element for button injection by looking for "Write" text
@@ -94,6 +137,11 @@ function isPremiumArticle() {
  * @returns {HTMLButtonElement} The created button
  */
 function createButton() {
+  // Ensure animation styles are injected
+  if (!document.querySelector(`style[data-id="break-medium-animations"]`)) {
+    injectAnimationStyles();
+  }
+  
   const button = document.createElement('button');
   button.id = CONFIG.buttonId;
   button.textContent = 'Break Medium';
@@ -104,7 +152,26 @@ function createButton() {
   // Add click event to redirect to Freedium
   button.addEventListener('click', function() {
     const freediumUrl = 'https://freedium.cfd/' + window.location.href;
-    window.location.href = freediumUrl;
+    
+    // Add click animation - reduced intensity
+    button.style.transform = 'scale(0.98)';
+    button.style.filter = 'brightness(95%)';
+    
+    // Short timeout to see the click effect
+    setTimeout(() => {
+      window.location.href = freediumUrl;
+    }, 100);
+  });
+  
+  // Add hover and hover out effects - reduced intensity
+  button.addEventListener('mouseenter', function() {
+    button.style.filter = 'brightness(105%)';
+    button.style.transform = 'scale(1.02)';
+  });
+  
+  button.addEventListener('mouseleave', function() {
+    button.style.filter = '';
+    button.style.transform = '';
   });
   
   return button;
@@ -155,7 +222,13 @@ function injectButtonToSelector() {
       targetElement.appendChild(button);
     }
     
-    console.log('Button successfully injected');
+    // Use setTimeout to ensure the animation plays
+    setTimeout(() => {
+      button.style.opacity = '1';
+      button.style.transform = 'scale(1)';
+    }, 10);
+    
+    console.log('Button successfully injected with animation');
     
     // Notify background script
     chrome.runtime.sendMessage({ action: "buttonInjected" });
@@ -341,3 +414,4 @@ window.addEventListener('load', function() {
     setupResponsiveButtonStyles();
   }
 });
+

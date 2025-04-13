@@ -19,6 +19,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
   
+  // Add entrance animation to the button when popup opens - lighter effect
+  function animateButtonEntrance() {
+    breakMediumButton.style.opacity = '0.8';
+    breakMediumButton.style.transform = 'scale(0.95)';
+    
+    setTimeout(() => {
+      breakMediumButton.style.transition = 'all 0.3s ease-out';
+      breakMediumButton.style.opacity = '1';
+      breakMediumButton.style.transform = 'scale(1)';
+    }, 50);
+  }
+  
+  // Run entrance animation
+  animateButtonEntrance();
+  
   /**
    * Updates status message with appropriate styling
    * @param {string} message - The message to display
@@ -126,12 +141,24 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Add click event listener to button
+  // Add click event listener to button with lighter animation
   breakMediumButton.addEventListener('click', function() {
-    breakMediumButton.classList.toggle('active');
-    redirectToFreedium();
+    // Lighter click animation
+    breakMediumButton.style.transition = 'all 0.15s ease-out';
+    breakMediumButton.style.transform = 'scale(0.98)';
+    breakMediumButton.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1)';
+    
+    setTimeout(() => {
+      breakMediumButton.classList.add('active');
+      breakMediumButton.style.transform = 'scale(1)';
+      
+      setTimeout(() => {
+        redirectToFreedium();
+      }, 100);
+    }, 100);
   });
   
   // Setup responsive layout
   setupResponsiveLayout();
 });
+
