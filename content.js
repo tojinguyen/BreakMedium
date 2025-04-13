@@ -27,6 +27,13 @@ function findTargetElementByText() {
 // Function to inject button into the specified selector
 function injectButtonToSelector() {
   try {
+    // Check if the current page is the Medium homepage
+    const currentUrl = window.location.href;
+    if (currentUrl === "https://medium.com/" || currentUrl === "https://www.medium.com/") {
+      console.log("Medium homepage detected, skipping button injection");
+      return false; // Do not inject on the homepage
+    }
+
     // Check if button already exists
     if (document.getElementById('break-medium-button')) {
       console.log('Break Medium button already exists, not adding another one');
@@ -223,3 +230,4 @@ window.addEventListener('load', function() {
     setupPersistentObserver();
   }
 });
+
