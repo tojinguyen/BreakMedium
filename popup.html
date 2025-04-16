@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="popup.css">
   <title>Break Medium</title>
+  <style>
+    html, body {
+      background-color: transparent;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
@@ -22,6 +30,11 @@
     </div>
     
     <div class="settings">
+      <label class="dark-mode-container">
+        <span><span class="sun-moon-icon" id="themeIcon">☀️</span> Dark Mode</span>
+        <input type="checkbox" id="darkModeToggle">
+        <span class="switch"></span>
+      </label>
       <label class="switch-container">
         <span>Enable redirect button</span>
         <input type="checkbox" id="enableButton">

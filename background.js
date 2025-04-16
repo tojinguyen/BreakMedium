@@ -11,13 +11,24 @@ chrome.runtime.onInstalled.addListener(function() {
   checkForDeprecatedAPIs();
   
   // Initialize storage with default settings
-  chrome.storage.local.set({
-    isEnabled: true,
-    settings: {
-      option1: true,
-      option2: false,
-      openInNewTab: true,
-      enableButton: true
+  chrome.storage.local.get(['settings', 'darkMode'], function(data) {
+    // Only set default settings if they don't exist
+    if (!data.settings) {
+      chrome.storage.local.set({
+        isEnabled: true,
+        settings: {
+          option1: true,
+          option2: false,
+          openInNewTab: true,
+          enableButton: true
+        }
+      });
+    }
+    
+    // If darkMode isn't set, use system preference
+    if (typeof data.darkMode === 'undefined') {
+      // We can't access window.matchMedia here, so we'll let the popup handle
+      // the default system preference on first run
     }
   });
 });
@@ -131,3 +142,4 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     }
   }
 });
+

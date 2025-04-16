@@ -31,17 +31,33 @@ const CONFIG = {
   buttonHoverStyle: {
     filter: 'brightness(110%)',
     transform: 'scale(1.05)'
+  },
+  // Dark mode styles
+  darkModeButtonStyle: {
+    backgroundColor: '#1a8917',
+    color: 'white',
+    boxShadow: '0 2px 5px rgba(0, 0, 0, 0.3)',
   }
 };
 
-// Track if button is enabled
+// Track if button is enabled and dark mode state
 let isButtonEnabled = true;
+let isDarkMode = false;
 
-// Check setting on load
-chrome.storage.local.get('settings', function(data) {
+// Check settings on load
+chrome.storage.local.get(['settings', 'darkMode'], function(data) {
   if (data.settings && typeof data.settings.enableButton !== 'undefined') {
     isButtonEnabled = data.settings.enableButton;
     console.log("Button enabled setting loaded:", isButtonEnabled);
+  }
+
+  // Check dark mode setting
+  if (typeof data.darkMode !== 'undefined') {
+    isDarkMode = data.darkMode;
+    console.log("Dark mode setting loaded:", isDarkMode);
+  } else {
+    // Default to system preference if not set
+    isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
 });
 
@@ -160,6 +176,11 @@ function createButton() {
   // Apply styles from config
   Object.assign(button.style, CONFIG.buttonStyle);
   
+  // Apply dark mode styles if needed
+  if (isDarkMode) {
+    Object.assign(button.style, CONFIG.darkModeButtonStyle);
+  }
+
   // Add click event to redirect to Freedium
   button.addEventListener('click', function() {
     const freediumUrl = 'https://freedium.cfd/' + window.location.href;
@@ -462,6 +483,25 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   }
   else if (request.action === "updateButtonVisibility") {
     updateButtonVisibility(request.isEnabled);
+    sendResponse({success: true});
+  }
+  else if (request.action === "updateTheme") {
+    // Update dark mode state
+    isDarkMode = request.darkMode;
+
+    // Update button styling if it exists
+    const existingButton = document.getElementById(CONFIG.buttonId);
+    if (existingButton) {
+      if (isDarkMode) {
+        Object.assign(existingButton.style, CONFIG.darkModeButtonStyle);
+      } else {
+        // Reset to default
+        existingButton.style.backgroundColor = CONFIG.buttonStyle.backgroundColor;
+        existingButton.style.color = CONFIG.buttonStyle.color;
+        existingButton.style.boxShadow = '';
+      }
+    }
+
     sendResponse({success: true});
   }
   return true; // Required for async sendResponse

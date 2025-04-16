@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const statusDiv = document.getElementById('status');
   const openInNewTabCheckbox = document.getElementById('openInNewTab');
   const enableButtonCheckbox = document.getElementById('enableButton');
+  const darkModeToggle = document.getElementById('darkModeToggle');
+  const themeIcon = document.getElementById('themeIcon');
   const githubLink = document.getElementById('githubLink');
   const mediumOnlyNotice = document.getElementById('mediumOnlyNotice');
 
@@ -28,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Load saved settings
   function loadSettings() {
-    chrome.storage.local.get('settings', function(data) {
+    chrome.storage.local.get(['settings', 'darkMode'], function(data) {
       if (data.settings) {
         if (typeof data.settings.openInNewTab !== 'undefined') {
           openInNewTabCheckbox.checked = data.settings.openInNewTab;
@@ -47,6 +49,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // Default settings if none exist
         openInNewTabCheckbox.checked = true;
         enableButtonCheckbox.checked = true;
+      }
+
+      // Load dark mode setting
+      if (typeof data.darkMode !== 'undefined') {
+        darkModeToggle.checked = data.darkMode;
+        updateTheme(data.darkMode);
+      } else {
+        // Default to system preference
+        const prefersDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        darkModeToggle.checked = prefersDarkMode;
+        updateTheme(prefersDarkMode);
       }
     });
   }
@@ -88,6 +101,60 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Save dark mode setting separately
+  function saveDarkMode(isDark) {
+    chrome.storage.local.set({ darkMode: isDark }, function() {
+      updateStatus("Theme updated", 'success');
+
+      // Clear status after a delay
+      setTimeout(() => {
+        updateStatus("");
+      }, 1500);
+
+      // Update the theme icon
+      updateThemeIcon(isDark);
+    });
+  }
+
+  // Update theme icon based on current mode
+  function updateThemeIcon(isDark) {
+    themeIcon.textContent = isDark ? '🌙' : '☀️';
+  }
+
+  // Apply dark or light theme
+  function updateTheme(isDark) {
+    if (isDark) {
+      document.body.classList.add('dark-mode');
+      document.body.classList.remove('auto-dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+
+      // Check if system prefers dark mode to add auto-dark-mode class
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('auto-dark-mode');
+      } else {
+        document.body.classList.remove('auto-dark-mode');
+      }
+    }
+
+    // Update theme icon
+    updateThemeIcon(isDark);
+  }
+
+  // Listen for system theme changes to update auto-dark-mode
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+      // Only apply auto dark mode if manual dark mode isn't enabled
+      if (!darkModeToggle.checked) {
+        if (event.matches) {
+          document.body.classList.add('auto-dark-mode');
+        } else {
+          document.body.classList.remove('auto-dark-mode');
+        }
+      }
+    });
+  }
+
   // Event listeners for settings changes
   openInNewTabCheckbox.addEventListener('change', function() {
     saveSettings('openInNewTab', openInNewTabCheckbox.checked);
@@ -95,6 +162,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
   enableButtonCheckbox.addEventListener('change', function() {
     saveSettings('enableButton', enableButtonCheckbox.checked);
+  });
+
+  // Event listener for dark mode toggle
+  darkModeToggle.addEventListener('change', function() {
+    updateTheme(darkModeToggle.checked);
+    saveDarkMode(darkModeToggle.checked);
+
+    // Notify all medium tabs about theme change
+    chrome.tabs.query({}, function(tabs) {
+      tabs.forEach(tab => {
+        if (tab.url && isMediumUrl(tab.url)) {
+          chrome.tabs.sendMessage(tab.id, {
+            action: "updateTheme",
+            darkMode: darkModeToggle.checked
+          }).catch(() => {
+            // Ignore errors if content script isn't loaded
+          });
+        }
+      });
+    });
   });
 
   // Setup GitHub link
