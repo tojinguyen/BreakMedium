@@ -55,6 +55,30 @@ button {
   animation: buttonAppear 0.4s ease-out forwards;
 }
 
+/* Redirected button state */
+button.redirected {
+  background-color: #2e7d32;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+button.redirected:hover {
+  background-color: #2e7d32;
+  transform: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.check-icon {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 15px;
+  font-weight: bold;
+}
+
 /* Focus state */
 button:focus {
   outline: 2px solid #4caf50;
@@ -358,4 +382,13 @@ input:checked + .switch:after {
     background-color: #555555;
     color: #999999;
   }
+
+  button.redirected {
+    background-color: #2e7d32;
+  }
+
+  button.redirected:hover {
+    background-color: #2e7d32;
+  }
 }
+

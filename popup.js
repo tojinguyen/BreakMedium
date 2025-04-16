@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Configuration
   const CONFIG = {
     mediumDomains: ['medium.com', 'towardsdatascience.com'],
+    freediumDomain: 'freedium.cfd',
     redirectUrl: 'https://freedium.cfd/',
     githubUrl: 'https://github.com/tojinguyen/BreakMedium',
     statusColors: {
@@ -151,6 +152,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!url) return false;
     return CONFIG.mediumDomains.some(domain => url.includes(domain));
   }
+
+  /**
+   * Checks if a URL is already a Freedium URL
+   * @param {string} url - URL to check
+   * @returns {boolean} True if URL is a Freedium URL
+   */
+  function isFreediumUrl(url) {
+    if (!url) return false;
+    return url.includes(CONFIG.freediumDomain);
+  }
   
   /**
    * Creates a freedium URL from a Medium URL
@@ -162,20 +173,32 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   /**
-   * Update UI based on whether current page is a Medium page
+   * Update UI based on whether current page is a Medium page or Freedium
    * @param {boolean} isMedium - Whether current page is Medium
+   * @param {boolean} isFreedium - Whether current page is Freedium
    */
-  function updateUIForMediumPage(isMedium) {
-    if (isMedium) {
+  function updateUIForMediumPage(isMedium, isFreedium) {
+    if (isFreedium) {
+      // On Freedium page (already redirected)
+      breakMediumButton.disabled = true;
+      breakMediumButton.classList.remove('disabled');
+      breakMediumButton.classList.add('redirected');
+      mediumOnlyNotice.classList.add('hidden');
+      breakMediumButton.innerHTML = "<span class='check-icon'>✓</span> Redirected";
+      updateStatus("You're already on a Freedium page", 'success');
+    }
+    else if (isMedium) {
       // On Medium page
       breakMediumButton.disabled = false;
       breakMediumButton.classList.remove('disabled');
+      breakMediumButton.classList.remove('redirected');
       mediumOnlyNotice.classList.add('hidden');
       breakMediumButton.textContent = "Break Medium Article";
     } else {
       // Not on Medium page
       breakMediumButton.disabled = true;
       breakMediumButton.classList.add('disabled');
+      breakMediumButton.classList.remove('redirected');
       mediumOnlyNotice.classList.remove('hidden');
       breakMediumButton.textContent = "Only works on Medium";
       updateStatus("Visit Medium to use this extension", 'warning');
@@ -341,9 +364,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const currentUrl = tabs[0].url;
     const isMedium = isMediumUrl(currentUrl);
-    updateUIForMediumPage(isMedium);
+    const isFreedium = isFreediumUrl(currentUrl);
+    updateUIForMediumPage(isMedium, isFreedium);
   });
   
   // Setup responsive layout
   setupResponsiveLayout();
 });
+
