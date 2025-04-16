@@ -68,10 +68,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (setting === 'enableButton') {
           chrome.tabs.query({}, function(tabs) {
             tabs.forEach(tab => {
-              if (tab.url && (tab.url.includes('medium.com') || tab.url.includes('towardsdatascience.com'))) {
-                chrome.tabs.sendMessage(tab.id, {
-                  action: "updateButtonVisibility",
-                  isEnabled: value
+              if (tab.url && isMediumUrl(tab.url)) {
+                // Check if content script is loaded before sending message
+                chrome.tabs.sendMessage(tab.id, { action: "ping" }, function(response) {
+                  // Only send message if content script responded
+                  if (!chrome.runtime.lastError && response) {
+                    chrome.tabs.sendMessage(tab.id, {
+                      action: "updateButtonVisibility",
+                      isEnabled: value
+                    });
+                  }
                 });
               }
             });
@@ -142,6 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
    * @returns {boolean} True if URL is a Medium domain
    */
   function isMediumUrl(url) {
+    if (!url) return false;
     return CONFIG.mediumDomains.some(domain => url.includes(domain));
   }
   
@@ -182,6 +189,11 @@ document.addEventListener('DOMContentLoaded', function() {
     updateStatus("Processing...");
     
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+      if (!tabs || tabs.length === 0) {
+        updateStatus("Cannot access current tab", 'error');
+        return;
+      }
+
       const currentUrl = tabs[0].url;
       
       if (isMediumUrl(currentUrl)) {
@@ -190,16 +202,30 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check user preference for tab behavior
         if (openInNewTabCheckbox.checked) {
           // Open in new tab
-          chrome.tabs.create({ url: freediumUrl });
-          updateStatus("Opened in new tab!", 'success');
+          chrome.tabs.create({ url: freediumUrl }, function(tab) {
+            if (chrome.runtime.lastError) {
+              console.error("Error creating tab:", chrome.runtime.lastError);
+              updateStatus("Error opening new tab", 'error');
+            } else {
+              updateStatus("Opened in new tab!", 'success');
+            }
+          });
         } else {
           // Redirect current tab
-          chrome.tabs.update(tabs[0].id, { url: freediumUrl });
-          updateStatus("Redirecting...", 'success');
+          chrome.tabs.update(tabs[0].id, { url: freediumUrl }, function(tab) {
+            if (chrome.runtime.lastError) {
+              console.error("Error updating tab:", chrome.runtime.lastError);
+              updateStatus("Error redirecting", 'error');
+            } else {
+              updateStatus("Redirecting...", 'success');
+            }
+          });
         }
         
-        // Try to create notification
-        tryCreateNotification(openInNewTabCheckbox.checked);
+        // Try to create notification if permission exists
+        if (chrome.notifications) {
+          tryCreateNotification(openInNewTabCheckbox.checked);
+        }
       } else {
         updateStatus("This is not a Medium article.", 'error');
       }
@@ -211,6 +237,11 @@ document.addEventListener('DOMContentLoaded', function() {
    */
   function tryCreateNotification(openedInNewTab) {
     try {
+      if (!chrome.notifications) {
+        console.log("Notifications API not available");
+        return;
+      }
+
       const message = openedInNewTab ?
         "Freedium opened in a new tab for unlimited access." :
         "You are being redirected to Freedium for unlimited access.";
@@ -223,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function() {
           title: "Break Medium",
           message: message
         },
-        response => {
+        function(notificationId) {
           if (chrome.runtime.lastError) {
             console.error("Notification error:", chrome.runtime.lastError.message);
           }
@@ -302,6 +333,12 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Check if current page is Medium and update UI accordingly
   chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+    if (!tabs || tabs.length === 0) {
+      console.error("Cannot access current tab");
+      updateStatus("Cannot access current tab", 'error');
+      return;
+    }
+
     const currentUrl = tabs[0].url;
     const isMedium = isMediumUrl(currentUrl);
     updateUIForMediumPage(isMedium);
@@ -310,4 +347,3 @@ document.addEventListener('DOMContentLoaded', function() {
   // Setup responsive layout
   setupResponsiveLayout();
 });
-

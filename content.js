@@ -444,7 +444,11 @@ function setupResponsiveButtonStyles() {
 
 // Message listener
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  if (request.action === "performAction") {
+  if (request.action === "ping") {
+    // Response to ping, confirms content script is loaded
+    sendResponse({status: "alive"});
+  }
+  else if (request.action === "performAction") {
     const currentUrl = window.location.href;
     const freediumUrl = 'https://freedium.cfd/' + currentUrl;
     sendResponse({status: "Redirecting to: " + freediumUrl});
@@ -460,7 +464,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     updateButtonVisibility(request.isEnabled);
     sendResponse({success: true});
   }
-  return true;
+  return true; // Required for async sendResponse
 });
 
 // Initialization when DOM is loaded
