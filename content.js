@@ -157,10 +157,21 @@ function createButton() {
     button.style.transform = 'scale(0.98)';
     button.style.filter = 'brightness(95%)';
     
-    // Short timeout to see the click effect
-    setTimeout(() => {
-      window.location.href = freediumUrl;
-    }, 100);
+    // Get user preference for tab behavior
+    chrome.storage.local.get('settings', function(data) {
+      const openInNewTab = data.settings && data.settings.openInNewTab;
+
+      // Short timeout to see the click effect
+      setTimeout(() => {
+        if (openInNewTab) {
+          // Open in new tab
+          window.open(freediumUrl, '_blank');
+        } else {
+          // Redirect current tab
+          window.location.href = freediumUrl;
+        }
+      }, 100);
+    });
   });
   
   // Add hover and hover out effects - reduced intensity

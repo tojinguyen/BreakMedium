@@ -7,7 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // DOM elements
   const breakMediumButton = document.getElementById('breakMediumButton');
   const statusDiv = document.getElementById('status');
-  
+  const openInNewTabCheckbox = document.getElementById('openInNewTab');
+
   // Configuration
   const CONFIG = {
     mediumDomains: ['medium.com', 'towardsdatascience.com'],
@@ -19,6 +20,35 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   };
   
+  // Load saved settings
+  function loadSettings() {
+    chrome.storage.local.get('settings', function(data) {
+      if (data.settings && typeof data.settings.openInNewTab !== 'undefined') {
+        openInNewTabCheckbox.checked = data.settings.openInNewTab;
+      } else {
+        // Default to true if setting doesn't exist
+        openInNewTabCheckbox.checked = true;
+      }
+    });
+  }
+
+  // Save settings when changed
+  openInNewTabCheckbox.addEventListener('change', function() {
+    chrome.storage.local.get('settings', function(data) {
+      const settings = data.settings || {};
+      settings.openInNewTab = openInNewTabCheckbox.checked;
+
+      chrome.storage.local.set({ settings: settings }, function() {
+        updateStatus("Settings saved", 'success');
+
+        // Clear status after a delay
+        setTimeout(() => {
+          updateStatus("");
+        }, 1500);
+      });
+    });
+  });
+
   // Add entrance animation to the button when popup opens - lighter effect
   function animateButtonEntrance() {
     breakMediumButton.style.opacity = '0.8';
@@ -34,6 +64,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Run entrance animation
   animateButtonEntrance();
   
+  // Load settings when popup opens
+  loadSettings();
+
   /**
    * Updates status message with appropriate styling
    * @param {string} message - The message to display
@@ -63,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   /**
-   * Redirects current tab to Freedium version of Medium article
+   * Redirects to Freedium version of Medium article
    */
   function redirectToFreedium() {
     updateStatus("Processing...");
@@ -74,11 +107,19 @@ document.addEventListener('DOMContentLoaded', function() {
       if (isMediumUrl(currentUrl)) {
         const freediumUrl = createFreediumUrl(currentUrl);
         
-        chrome.tabs.update(tabs[0].id, { url: freediumUrl });
-        updateStatus("Redirecting to Freedium...", 'success');
+        // Check user preference for tab behavior
+        if (openInNewTabCheckbox.checked) {
+          // Open in new tab
+          chrome.tabs.create({ url: freediumUrl });
+          updateStatus("Opened in new tab!", 'success');
+        } else {
+          // Redirect current tab
+          chrome.tabs.update(tabs[0].id, { url: freediumUrl });
+          updateStatus("Redirecting...", 'success');
+        }
         
         // Try to create notification
-        tryCreateNotification();
+        tryCreateNotification(openInNewTabCheckbox.checked);
       } else {
         updateStatus("This is not a Medium article.", 'error');
       }
@@ -88,15 +129,19 @@ document.addEventListener('DOMContentLoaded', function() {
   /**
    * Attempts to create a notification and handles errors gracefully
    */
-  function tryCreateNotification() {
+  function tryCreateNotification(openedInNewTab) {
     try {
+      const message = openedInNewTab ?
+        "Freedium opened in a new tab for unlimited access." :
+        "You are being redirected to Freedium for unlimited access.";
+
       chrome.notifications.create(
         '',
         {
           type: "basic",
           iconUrl: "images/icon48.png",
           title: "Break Medium",
-          message: "You are being redirected to Freedium for unlimited access."
+          message: message
         },
         response => {
           if (chrome.runtime.lastError) {

@@ -1,34 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <title>Break Medium</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="popup.css">
+  <title>Break Medium</title>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <img src="images/icon48.png" alt="Break Medium Logo" class="logo">
       <h2>Break Medium</h2>
-      <p>Access Medium articles without limits</p>
+      <p>Get unlimited access to Medium articles</p>
     </div>
     
-    <button 
-      id="breakMediumButton" 
-      aria-label="Break Medium - Redirect to Freedium for unlimited access"
-    >
-      Break Medium
-      <span class="tooltip">Redirects to Freedium for unlimited access</span>
-    </button>
+    <button id="breakMediumButton">Break Medium Article</button>
     
-    <div id="status" aria-live="polite"></div>
+    <div class="settings">
+      <label class="switch-container">
+        <span>Open in new tab</span>
+        <input type="checkbox" id="openInNewTab">
+        <span class="switch"></span>
+      </label>
+    </div>
+
+    <div id="status"></div>
     
     <div class="footer">
       <p>Made with ❤️ for better reading</p>
     </div>
   </div>
-  
   <script src="popup.js"></script>
 </body>
 </html>

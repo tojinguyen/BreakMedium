@@ -15,7 +15,8 @@ chrome.runtime.onInstalled.addListener(function() {
     isEnabled: true,
     settings: {
       option1: true,
-      option2: false
+      option2: false,
+      openInNewTab: true
     }
   });
 });
