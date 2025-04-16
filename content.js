@@ -8,8 +8,8 @@ console.log("Break Medium content script loaded");
 // Configuration
 const CONFIG = {
   buttonId: 'break-medium-button',
-  injectionAttempts: 60,
-  injectionInterval: 1000, // 1 second
+  injectionAttempts: 30,
+  injectionInterval: 1500, // 1,5 second
   urlChangeDelay: 1500,
   buttonStyle: {
     padding: '8px 16px',
@@ -33,6 +33,17 @@ const CONFIG = {
     transform: 'scale(1.05)'
   }
 };
+
+// Track if button is enabled
+let isButtonEnabled = true;
+
+// Check setting on load
+chrome.storage.local.get('settings', function(data) {
+  if (data.settings && typeof data.settings.enableButton !== 'undefined') {
+    isButtonEnabled = data.settings.enableButton;
+    console.log("Button enabled setting loaded:", isButtonEnabled);
+  }
+});
 
 // Inject animation keyframes to the page
 function injectAnimationStyles() {
@@ -194,6 +205,13 @@ function createButton() {
  */
 function injectButtonToSelector() {
   try {
+    // Skip if button is disabled
+    if (!isButtonEnabled) {
+      console.log('Button injection disabled by user settings');
+      removeExistingButton();
+      return false;
+    }
+
     // Skip injection on Medium homepage
     const currentUrl = window.location.href;
     if (currentUrl === "https://medium.com/" || currentUrl === "https://www.medium.com/") {
@@ -248,6 +266,44 @@ function injectButtonToSelector() {
   } catch (error) {
     console.error('Error injecting button:', error);
     return false;
+  }
+}
+
+/**
+ * Removes the button from the page if it exists
+ */
+function removeExistingButton() {
+  const existingButton = document.getElementById(CONFIG.buttonId);
+  if (existingButton) {
+    console.log('Removing existing button');
+    // Animate removal
+    existingButton.style.opacity = '0';
+    existingButton.style.transform = 'scale(0.9)';
+
+    setTimeout(() => {
+      if (existingButton.parentNode) {
+        existingButton.parentNode.removeChild(existingButton);
+      }
+    }, 300);
+  }
+}
+
+/**
+ * Update button visibility based on settings
+ * @param {boolean} enabled - Whether the button should be visible
+ */
+function updateButtonVisibility(enabled) {
+  isButtonEnabled = enabled;
+  console.log('Button visibility updated:', enabled);
+
+  if (enabled) {
+    // Try to inject button if it's enabled
+    if (!isButtonStillPresent()) {
+      injectButtonToSelector();
+    }
+  } else {
+    // Remove button if it's disabled
+    removeExistingButton();
   }
 }
 
@@ -393,8 +449,16 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     const freediumUrl = 'https://freedium.cfd/' + currentUrl;
     sendResponse({status: "Redirecting to: " + freediumUrl});
   }
-  if (request.action === "injectButton") {
-    injectButtonToSelector();
+  else if (request.action === "injectButton") {
+    // Only inject if enabled
+    if (isButtonEnabled) {
+      injectButtonToSelector();
+    }
+    sendResponse({success: true});
+  }
+  else if (request.action === "updateButtonVisibility") {
+    updateButtonVisibility(request.isEnabled);
+    sendResponse({success: true});
   }
   return true;
 });
