@@ -57,6 +57,35 @@ button {
   position: relative;
   outline: none;
   animation: buttonAppear 0.4s ease-out forwards;
+  overflow: hidden; /* Ensure ripples don't overflow */
+}
+
+/* Remove default ::after ripple since we're using dynamic ripples now */
+button::after {
+  display: none;
+}
+
+/* Hover state */
+button:hover {
+  background-color: #45a049;
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Special rules for popup ripple effects */
+.popup-ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Focus state */
+button:focus {
+  outline: 2px solid #4caf50;
+  outline-offset: 2px;
+  border-radius: 8px;
 }
 
 /* Redirected button state */

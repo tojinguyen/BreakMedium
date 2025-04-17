@@ -216,8 +216,166 @@ function createButton() {
     button.style.filter = '';
     button.style.transform = '';
   });
+
+  // --- Water ripple effect with MULTIPLE PARALLEL WAVES on hover ---
+  button.style.position = 'relative';
+  button.style.overflow = 'hidden';
+  
+  let rippleInterval = null;
+  let isHovering = false;
+  let lastMousePosition = { x: 0, y: 0 };
+  
+  // Create ripples when mouse enters button and track mouse position
+  button.addEventListener('mouseenter', function(e) {
+    isHovering = true;
+    lastMousePosition = { x: e.clientX, y: e.clientY };
+    
+    // Create initial multiple ripples at mouse position
+    createMultipleRipples(button, e);
+    
+    // Continue creating ripples while hovering from current mouse position
+    rippleInterval = setInterval(() => {
+      if (isHovering) {
+        createMultipleRipples(button, { clientX: lastMousePosition.x, clientY: lastMousePosition.y });
+      }
+    }, 1200); // Create new wave sets every 1.2s
+  });
+  
+  // Track mouse movement to update ripple origin
+  button.addEventListener('mousemove', function(e) {
+    if (isHovering) {
+      lastMousePosition = { x: e.clientX, y: e.clientY };
+    }
+  });
+  
+  // Stop creating ripples when mouse leaves
+  button.addEventListener('mouseleave', function() {
+    isHovering = false;
+    if (rippleInterval) {
+      clearInterval(rippleInterval);
+      rippleInterval = null;
+    }
+  });
   
   return button;
+}
+
+/**
+ * Creates multiple parallel ripple effects
+ * @param {HTMLElement} button - The button element
+ * @param {MouseEvent|Object} [e] - Optional mouse event for position
+ */
+function createMultipleRipples(button, e = null) {
+  const rect = button.getBoundingClientRect();
+  const mouseX = e ? (e.clientX - rect.left) : rect.width/2;
+  const mouseY = e ? (e.clientY - rect.top) : rect.height/2;
+  
+  // Clear old ripples if too many
+  const ripples = button.querySelectorAll('.ripple-effect');
+  if (ripples.length > 15) {
+    for (let i = 0; i < 5; i++) {
+      if (ripples[i]) ripples[i].remove();
+    }
+  }
+  
+  // Create 3-5 ripples in parallel from mouse position (same as popup)
+  const rippleCount = 3 + Math.floor(Math.random() * 2); // 3 to 5 ripples, consistent with popup
+  
+  // Beautiful colors for ripple effect
+  const rippleColors = [
+    'rgba(255,255,255,0.15)',  // light white
+    'rgba(255,255,255,0.13)',  // softer white
+    'rgba(255,255,255,0.17)',  // stronger white
+    'rgba(240,255,250,0.12)',  // very light mint
+    'rgba(220,255,250,0.10)'   // softer mint
+  ];
+  
+  for (let i = 0; i < rippleCount; i++) {
+    // All ripples originate from mouse position with small random offsets (same as popup)
+    const offsetX = (Math.random() - 0.5) * 6; // Slight X offset (-3 to +3px)
+    const offsetY = (Math.random() - 0.5) * 6; // Slight Y offset (-3 to +3px)
+    const posX = mouseX + offsetX;
+    const posY = mouseY + offsetY;
+    
+    // Use fixed sizes for consistent ripple effect
+    const multiplier = 1.5; // Fixed value instead of random
+    const size = Math.max(rect.width, rect.height) * multiplier;
+    const duration = 2.0; // Fixed 2.0 second duration for all ripples
+    const delay = i * 80; // Even spacing between ripples
+    const opacity = 0.15; // Fixed opacity for consistency
+    
+    // Choose random color from our color palette
+    const color = rippleColors[Math.floor(Math.random() * rippleColors.length)];
+    
+    createRippleAt(button, posX, posY, size, opacity, duration, delay, color);
+  }
+}
+
+/**
+ * Creates a single ripple at specific position
+ * @param {HTMLElement} button - The button element
+ * @param {number} x - X position
+ * @param {number} y - Y position
+ * @param {number} size - Final ripple size
+ * @param {number} opacity - Ripple opacity
+ * @param {number} duration - Animation duration
+ * @param {number} delay - Start delay
+ * @param {string} color - Ripple color in rgba format
+ */
+function createRippleAt(button, x, y, size, opacity, duration, delay, color = 'rgba(255,255,255,0.15)') {
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple-effect';
+  
+  // Position and initial size
+  ripple.style.position = 'absolute';
+  ripple.style.left = x + 'px';
+  ripple.style.top = y + 'px';
+  ripple.style.width = ripple.style.height = '0px';
+  
+  // Advanced styling (synchronized with popup)
+  ripple.style.background = color;
+  ripple.style.borderRadius = '50%';
+  ripple.style.transform = 'translate(-50%, -50%)';
+  ripple.style.opacity = '0.6'; // Start with higher opacity like popup
+  ripple.style.pointerEvents = 'none';
+  ripple.style.mixBlendMode = 'lighten';
+  ripple.style.filter = 'blur(1.5px)';
+  ripple.style.willChange = 'transform, width, height, opacity';
+  
+  // Use simple timing function for consistent effect
+  const timingFn = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'; // easeOutQuad
+  
+  // Set up slow, smooth water-like transition
+  ripple.style.transition = `width ${duration}s ${timingFn}, height ${duration}s ${timingFn}, opacity ${duration * 0.8}s ${timingFn}`;
+  ripple.style.zIndex = '1';
+  
+  // Add subtle shadow for depth effect
+  ripple.style.boxShadow = '0 0 10px rgba(255,255,255,0.05) inset';
+  
+  button.appendChild(ripple);
+  
+  // Start animation with delay
+  setTimeout(() => {
+    ripple.style.width = size + 'px';
+    ripple.style.height = size + 'px';
+    ripple.style.opacity = '0.12'; // Lower opacity when expanding
+    
+    // Use fixed scale value
+    const scale = 1.05; // Fixed instead of random
+    ripple.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  }, delay);
+  
+  // Remove after animation completes with fade-out
+  setTimeout(() => {
+    if (ripple.parentNode) {
+      ripple.style.opacity = '0';
+      // Use fixed scale when disappearing
+      ripple.style.transform = 'translate(-50%, -50%) scale(1.1)';
+      setTimeout(() => {
+        if (ripple.parentNode) ripple.parentNode.removeChild(ripple);
+      }, 600);
+    }
+  }, delay + (duration * 1000));
 }
 
 /**
