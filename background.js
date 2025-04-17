@@ -11,11 +11,24 @@ chrome.runtime.onInstalled.addListener(function() {
   checkForDeprecatedAPIs();
   
   // Initialize storage with default settings
-  chrome.storage.local.set({
-    isEnabled: true,
-    settings: {
-      option1: true,
-      option2: false
+  chrome.storage.local.get(['settings', 'darkMode'], function(data) {
+    // Only set default settings if they don't exist
+    if (!data.settings) {
+      chrome.storage.local.set({
+        isEnabled: true,
+        settings: {
+          option1: true,
+          option2: false,
+          openInNewTab: true,
+          enableButton: true
+        }
+      });
+    }
+    
+    // If darkMode isn't set, use system preference
+    if (typeof data.darkMode === 'undefined') {
+      // We can't access window.matchMedia here, so we'll let the popup handle
+      // the default system preference on first run
     }
   });
 });
@@ -42,12 +55,22 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     switch(request.action) {
       case "getSettings":
         chrome.storage.local.get("settings", function(data) {
+          if (chrome.runtime.lastError) {
+            console.error("Error getting settings:", chrome.runtime.lastError);
+            sendResponse({ error: chrome.runtime.lastError.message });
+            return;
+          }
           sendResponse({ settings: data.settings });
         });
         return true; // Required for async sendResponse
         
       case "openInNewTab":
-        chrome.tabs.create({ url: request.url }, () => {
+        chrome.tabs.create({ url: request.url }, (tab) => {
+          if (chrome.runtime.lastError) {
+            console.error("Error opening tab:", chrome.runtime.lastError);
+            sendResponse({ error: chrome.runtime.lastError.message });
+            return;
+          }
           sendResponse({ success: true });
         });
         return true;
@@ -77,13 +100,46 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (isMediumSite) {
       console.log("Medium page detected, injecting automatically:", tab.url);
       
-      chrome.tabs.sendMessage(tabId, { action: "injectButton" }, (response) => {
+      // Check if button is enabled before injecting
+      chrome.storage.local.get('settings', function(data) {
         if (chrome.runtime.lastError) {
-          console.warn("Error sending message to content script:", chrome.runtime.lastError.message);
-        } else if (response && response.success) {
-          console.log("Button injection successful:", tab.url);
+          console.error("Error getting settings:", chrome.runtime.lastError);
+          return;
+        }
+        
+        const enableButton = data.settings && typeof data.settings.enableButton !== 'undefined' ? 
+                            data.settings.enableButton : true;
+        
+        if (enableButton) {
+          // First check if content script is loaded
+          chrome.tabs.sendMessage(tabId, { action: "ping" }, function(response) {
+            if (chrome.runtime.lastError) {
+              console.warn("Content script not ready:", chrome.runtime.lastError.message);
+              // We'll retry after a delay
+              setTimeout(() => {
+                chrome.tabs.sendMessage(tabId, { action: "injectButton" }, (response) => {
+                  // Just log if there's still an error but don't retry further
+                  if (chrome.runtime.lastError) {
+                    console.warn("Content script still not ready:", chrome.runtime.lastError.message);
+                  }
+                });
+              }, 1000);
+            } else {
+              // Content script is loaded, inject button
+              chrome.tabs.sendMessage(tabId, { action: "injectButton" }, (response) => {
+                if (chrome.runtime.lastError) {
+                  console.warn("Error sending message to content script:", chrome.runtime.lastError.message);
+                } else if (response && response.success) {
+                  console.log("Button injection successful:", tab.url);
+                }
+              });
+            }
+          });
+        } else {
+          console.log("Button injection skipped (disabled by user)");
         }
       });
     }
   }
 });
+

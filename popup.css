@@ -29,6 +29,18 @@
   }
 }
 
+/* General styling */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0; /* Remove margin completely */
+  background-color: transparent;
+  color: #333;
+  overflow: hidden;
+  box-shadow: none;
+  border: none;
+  animation: popupAppear 0.3s ease-out forwards;
+}
+
 /* Button styles */
 button {
   margin: 12px 0;
@@ -36,7 +48,7 @@ button {
   background-color: #4caf50;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: bold;
   font-size: 16px;
@@ -45,11 +57,12 @@ button {
   position: relative;
   outline: none;
   animation: buttonAppear 0.4s ease-out forwards;
+  overflow: hidden; /* Ensure ripples don't overflow */
 }
 
-/* Focus state */
-button:focus {
-  outline: 2px solid #4caf50;
+/* Remove default ::after ripple since we're using dynamic ripples now */
+button::after {
+  display: none;
 }
 
 /* Hover state */
@@ -57,6 +70,76 @@ button:hover {
   background-color: #45a049;
   transform: translateY(-1px) scale(1.01);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Special rules for popup ripple effects */
+.popup-ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Focus state */
+button:focus {
+  outline: 2px solid #4caf50;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Redirected button state */
+button.redirected {
+  background-color: #2e7d32;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+button.redirected:hover {
+  background-color: #2e7d32;
+  transform: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.check-icon {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 15px;
+  font-weight: bold;
+}
+
+/* Focus state */
+button:focus {
+  outline: 2px solid #4caf50;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Hover state */
+button:hover {
+  background-color: #45a049;
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Disabled button state */
+button.disabled {
+  background-color: #cccccc;
+  color: #666666;
+  transform: none;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.8;
+}
+
+button.disabled:hover {
+  background-color: #cccccc;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Active state */
@@ -71,6 +154,35 @@ button.active:hover {
   background-color: #256d27;
 }
 
+/* Medium-only notice styling */
+.medium-notice {
+  display: flex;
+  align-items: center;
+  background-color: #fff3e0;
+  border: 1px solid #ffe0b2;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 10px 0;
+  max-width: 95%;
+  animation: buttonAppear 0.3s ease-out forwards;
+}
+
+.medium-notice p {
+  margin: 0;
+  font-size: 13px;
+  color: #e65100;
+  text-align: left;
+}
+
+.medium-notice-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.hidden {
+  display: none;
+}
+
 /* Tooltip styles */
 .tooltip {
   visibility: hidden;
@@ -82,8 +194,8 @@ button.active:hover {
   background-color: #555;
   color: #fff;
   text-align: center;
-  padding: 5px 10px;
-  border-radius: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
   font-size: 12px;
   white-space: nowrap;
   z-index: 1000;
@@ -103,27 +215,50 @@ button.active:hover {
 
 /* Container and layout styles */
 .container {
-  min-width: 250px;
-  padding: 15px;
+  min-width: 300px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  background: linear-gradient(145deg, #ffffff 0%, #f5f5f5 100%);
+  border-radius: 0; /* Remove border radius */
+  box-shadow: none; /* Remove box shadow */
+  overflow: hidden;
+  border: none; /* Remove border */
+  position: relative;
+}
+
+/* Remove container glow effect */
+.container:before {
+  display: none;
 }
 
 .header {
   text-align: center;
   margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  width: 100%;
+  border-radius: 0;
 }
 
 .logo {
   width: 48px;
   height: 48px;
   margin-bottom: 10px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.1));
+  transition: transform 0.3s ease;
+  border-radius: 8px;
+}
+
+.logo:hover {
+  transform: rotate(5deg) scale(1.05);
 }
 
 h2 {
   margin: 5px 0;
   color: #333;
+  font-weight: 600;
 }
 
 p {
@@ -135,12 +270,266 @@ p {
   margin-top: 10px;
   font-size: 14px;
   min-height: 20px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 
 .footer {
   margin-top: 15px;
+  padding-top: 10px;
   text-align: center;
   font-size: 12px;
   color: #999;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border-radius: 0 0 8px 8px;
+}
+
+/* GitHub link styles */
+.github-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #666;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background-color: #f0f0f0;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+.github-link:hover {
+  background-color: #e0e0e0;
+  color: #333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.github-icon {
+  fill: currentColor;
+  border-radius: 50%;
+}
+
+/* Settings section styles */
+.settings {
+  width: 90%;
+  margin: 10px 0;
+  padding: 12px 14px;
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.switch-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 14px;
+  color: #444;
+  border-radius: 6px;
+}
+
+/* Toggle switch styles */
+input[type="checkbox"] {
+  height: 0;
+  width: 0;
+  visibility: hidden;
+  margin: 0;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  background: #ccc;
+  border-radius: 10px;
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+.switch:after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+input:checked + .switch {
+  background: #4caf50;
+}
+
+input:checked + .switch:after {
+  left: calc(100% - 2px);
+  transform: translateX(-100%);
+}
+
+.switch:active:after {
+  width: 20px;
+}
+
+/* Dark mode toggle specific styles */
+.dark-mode-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 14px;
+  color: #444;
+  border-radius: 6px;
+}
+
+.sun-moon-icon {
+  margin-right: 5px;
+  font-size: 14px;
+}
+
+/* Enhanced dark mode support */
+.dark-mode {
+  background-color: transparent;
+  color: #f0f0f0;
+  border-radius: 0; /* Remove border radius */
+  border: none; /* Remove border */
+  box-shadow: none; /* Remove box shadow */
+}
+
+.dark-mode .container {
+  background: linear-gradient(145deg, #2c2c2c 0%, #232323 100%);
+  box-shadow: none; /* Remove box shadow */
+  border: none; /* Remove border */
+  border-radius: 0; /* Remove border radius */
+}
+
+.dark-mode .container:before {
+  display: none;
+}
+
+.dark-mode h2 {
+  color: #f0f0f0;
+}
+
+.dark-mode p {
+  color: #cccccc;
+}
+
+.dark-mode .settings {
+  background-color: rgba(40, 40, 40, 0.7);
+  border-radius: 12px;
+}
+
+.dark-mode .switch-container,
+.dark-mode .dark-mode-container {
+  color: #cccccc;
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode .github-link {
+  background-color: #3a3a3a;
+  color: #ccc;
+  border-radius: 20px;
+}
+
+.dark-mode .github-link:hover {
+  background-color: #444;
+  color: #fff;
+}
+
+.dark-mode .medium-notice {
+  background-color: #3e2723;
+  border-color: #4e342e;
+  border-radius: 10px;
+}
+
+.dark-mode .medium-notice p {
+  color: #ffccbc;
+}
+
+.dark-mode button.disabled {
+  background-color: #555555;
+  color: #999999;
+}
+
+.dark-mode button.redirected {
+  background-color: #2e7d32;
+}
+
+.dark-mode button.redirected:hover {
+  background-color: #2e7d32;
+}
+
+.dark-mode .footer {
+  border-color: rgba(255, 255, 255, 0.05);
+  color: #777;
+}
+
+/* Add styling for auto dark mode */
+@media (prefers-color-scheme: dark) {
+  .auto-dark-mode {
+    background-color: transparent;
+    color: #f0f0f0;
+    border-radius: 0; /* Remove border radius */
+    border: none; /* Remove border */
+    box-shadow: none; /* Remove box shadow */
+  }
+  
+  .auto-dark-mode .container {
+    background: linear-gradient(145deg, #333333 0%, #292929 100%);
+    box-shadow: none; /* Remove box shadow */
+    border: none; /* Remove border */
+    border-radius: 0; /* Remove border radius */
+  }
+  
+  .auto-dark-mode .container:before {
+    display: none;
+  }
+}
+
+/* Add custom scrollbar for better UX with rounded corners */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.dark-mode ::-webkit-scrollbar-track,
+.auto-dark-mode ::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb,
+.auto-dark-mode ::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb:hover,
+.auto-dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: #666;
 }
 

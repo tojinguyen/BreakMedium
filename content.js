@@ -8,8 +8,8 @@ console.log("Break Medium content script loaded");
 // Configuration
 const CONFIG = {
   buttonId: 'break-medium-button',
-  injectionAttempts: 60,
-  injectionInterval: 1000, // 1 second
+  injectionAttempts: 30,
+  injectionInterval: 1500, // 1,5 second
   urlChangeDelay: 1500,
   buttonStyle: {
     padding: '8px 16px',
@@ -31,8 +31,35 @@ const CONFIG = {
   buttonHoverStyle: {
     filter: 'brightness(110%)',
     transform: 'scale(1.05)'
+  },
+  // Dark mode styles
+  darkModeButtonStyle: {
+    backgroundColor: '#1a8917',
+    color: 'white',
+    boxShadow: '0 2px 5px rgba(0, 0, 0, 0.3)',
   }
 };
+
+// Track if button is enabled and dark mode state
+let isButtonEnabled = true;
+let isDarkMode = false;
+
+// Check settings on load
+chrome.storage.local.get(['settings', 'darkMode'], function(data) {
+  if (data.settings && typeof data.settings.enableButton !== 'undefined') {
+    isButtonEnabled = data.settings.enableButton;
+    console.log("Button enabled setting loaded:", isButtonEnabled);
+  }
+
+  // Check dark mode setting
+  if (typeof data.darkMode !== 'undefined') {
+    isDarkMode = data.darkMode;
+    console.log("Dark mode setting loaded:", isDarkMode);
+  } else {
+    // Default to system preference if not set
+    isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+});
 
 // Inject animation keyframes to the page
 function injectAnimationStyles() {
@@ -149,6 +176,11 @@ function createButton() {
   // Apply styles from config
   Object.assign(button.style, CONFIG.buttonStyle);
   
+  // Apply dark mode styles if needed
+  if (isDarkMode) {
+    Object.assign(button.style, CONFIG.darkModeButtonStyle);
+  }
+
   // Add click event to redirect to Freedium
   button.addEventListener('click', function() {
     const freediumUrl = 'https://freedium.cfd/' + window.location.href;
@@ -157,10 +189,21 @@ function createButton() {
     button.style.transform = 'scale(0.98)';
     button.style.filter = 'brightness(95%)';
     
-    // Short timeout to see the click effect
-    setTimeout(() => {
-      window.location.href = freediumUrl;
-    }, 100);
+    // Get user preference for tab behavior
+    chrome.storage.local.get('settings', function(data) {
+      const openInNewTab = data.settings && data.settings.openInNewTab;
+
+      // Short timeout to see the click effect
+      setTimeout(() => {
+        if (openInNewTab) {
+          // Open in new tab
+          window.open(freediumUrl, '_blank');
+        } else {
+          // Redirect current tab
+          window.location.href = freediumUrl;
+        }
+      }, 100);
+    });
   });
   
   // Add hover and hover out effects - reduced intensity
@@ -173,8 +216,166 @@ function createButton() {
     button.style.filter = '';
     button.style.transform = '';
   });
+
+  // --- Water ripple effect with MULTIPLE PARALLEL WAVES on hover ---
+  button.style.position = 'relative';
+  button.style.overflow = 'hidden';
+  
+  let rippleInterval = null;
+  let isHovering = false;
+  let lastMousePosition = { x: 0, y: 0 };
+  
+  // Create ripples when mouse enters button and track mouse position
+  button.addEventListener('mouseenter', function(e) {
+    isHovering = true;
+    lastMousePosition = { x: e.clientX, y: e.clientY };
+    
+    // Create initial multiple ripples at mouse position
+    createMultipleRipples(button, e);
+    
+    // Continue creating ripples while hovering from current mouse position
+    rippleInterval = setInterval(() => {
+      if (isHovering) {
+        createMultipleRipples(button, { clientX: lastMousePosition.x, clientY: lastMousePosition.y });
+      }
+    }, 1200); // Create new wave sets every 1.2s
+  });
+  
+  // Track mouse movement to update ripple origin
+  button.addEventListener('mousemove', function(e) {
+    if (isHovering) {
+      lastMousePosition = { x: e.clientX, y: e.clientY };
+    }
+  });
+  
+  // Stop creating ripples when mouse leaves
+  button.addEventListener('mouseleave', function() {
+    isHovering = false;
+    if (rippleInterval) {
+      clearInterval(rippleInterval);
+      rippleInterval = null;
+    }
+  });
   
   return button;
+}
+
+/**
+ * Creates multiple parallel ripple effects
+ * @param {HTMLElement} button - The button element
+ * @param {MouseEvent|Object} [e] - Optional mouse event for position
+ */
+function createMultipleRipples(button, e = null) {
+  const rect = button.getBoundingClientRect();
+  const mouseX = e ? (e.clientX - rect.left) : rect.width/2;
+  const mouseY = e ? (e.clientY - rect.top) : rect.height/2;
+  
+  // Clear old ripples if too many
+  const ripples = button.querySelectorAll('.ripple-effect');
+  if (ripples.length > 15) {
+    for (let i = 0; i < 5; i++) {
+      if (ripples[i]) ripples[i].remove();
+    }
+  }
+  
+  // Create 3-5 ripples in parallel from mouse position (same as popup)
+  const rippleCount = 3 + Math.floor(Math.random() * 2); // 3 to 5 ripples, consistent with popup
+  
+  // Beautiful colors for ripple effect
+  const rippleColors = [
+    'rgba(255,255,255,0.15)',  // light white
+    'rgba(255,255,255,0.13)',  // softer white
+    'rgba(255,255,255,0.17)',  // stronger white
+    'rgba(240,255,250,0.12)',  // very light mint
+    'rgba(220,255,250,0.10)'   // softer mint
+  ];
+  
+  for (let i = 0; i < rippleCount; i++) {
+    // All ripples originate from mouse position with small random offsets (same as popup)
+    const offsetX = (Math.random() - 0.5) * 6; // Slight X offset (-3 to +3px)
+    const offsetY = (Math.random() - 0.5) * 6; // Slight Y offset (-3 to +3px)
+    const posX = mouseX + offsetX;
+    const posY = mouseY + offsetY;
+    
+    // Use fixed sizes for consistent ripple effect
+    const multiplier = 1.5; // Fixed value instead of random
+    const size = Math.max(rect.width, rect.height) * multiplier;
+    const duration = 2.0; // Fixed 2.0 second duration for all ripples
+    const delay = i * 80; // Even spacing between ripples
+    const opacity = 0.15; // Fixed opacity for consistency
+    
+    // Choose random color from our color palette
+    const color = rippleColors[Math.floor(Math.random() * rippleColors.length)];
+    
+    createRippleAt(button, posX, posY, size, opacity, duration, delay, color);
+  }
+}
+
+/**
+ * Creates a single ripple at specific position
+ * @param {HTMLElement} button - The button element
+ * @param {number} x - X position
+ * @param {number} y - Y position
+ * @param {number} size - Final ripple size
+ * @param {number} opacity - Ripple opacity
+ * @param {number} duration - Animation duration
+ * @param {number} delay - Start delay
+ * @param {string} color - Ripple color in rgba format
+ */
+function createRippleAt(button, x, y, size, opacity, duration, delay, color = 'rgba(255,255,255,0.15)') {
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple-effect';
+  
+  // Position and initial size
+  ripple.style.position = 'absolute';
+  ripple.style.left = x + 'px';
+  ripple.style.top = y + 'px';
+  ripple.style.width = ripple.style.height = '0px';
+  
+  // Advanced styling (synchronized with popup)
+  ripple.style.background = color;
+  ripple.style.borderRadius = '50%';
+  ripple.style.transform = 'translate(-50%, -50%)';
+  ripple.style.opacity = '0.6'; // Start with higher opacity like popup
+  ripple.style.pointerEvents = 'none';
+  ripple.style.mixBlendMode = 'lighten';
+  ripple.style.filter = 'blur(1.5px)';
+  ripple.style.willChange = 'transform, width, height, opacity';
+  
+  // Use simple timing function for consistent effect
+  const timingFn = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'; // easeOutQuad
+  
+  // Set up slow, smooth water-like transition
+  ripple.style.transition = `width ${duration}s ${timingFn}, height ${duration}s ${timingFn}, opacity ${duration * 0.8}s ${timingFn}`;
+  ripple.style.zIndex = '1';
+  
+  // Add subtle shadow for depth effect
+  ripple.style.boxShadow = '0 0 10px rgba(255,255,255,0.05) inset';
+  
+  button.appendChild(ripple);
+  
+  // Start animation with delay
+  setTimeout(() => {
+    ripple.style.width = size + 'px';
+    ripple.style.height = size + 'px';
+    ripple.style.opacity = '0.12'; // Lower opacity when expanding
+    
+    // Use fixed scale value
+    const scale = 1.05; // Fixed instead of random
+    ripple.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  }, delay);
+  
+  // Remove after animation completes with fade-out
+  setTimeout(() => {
+    if (ripple.parentNode) {
+      ripple.style.opacity = '0';
+      // Use fixed scale when disappearing
+      ripple.style.transform = 'translate(-50%, -50%) scale(1.1)';
+      setTimeout(() => {
+        if (ripple.parentNode) ripple.parentNode.removeChild(ripple);
+      }, 600);
+    }
+  }, delay + (duration * 1000));
 }
 
 /**
@@ -183,6 +384,13 @@ function createButton() {
  */
 function injectButtonToSelector() {
   try {
+    // Skip if button is disabled
+    if (!isButtonEnabled) {
+      console.log('Button injection disabled by user settings');
+      removeExistingButton();
+      return false;
+    }
+
     // Skip injection on Medium homepage
     const currentUrl = window.location.href;
     if (currentUrl === "https://medium.com/" || currentUrl === "https://www.medium.com/") {
@@ -237,6 +445,44 @@ function injectButtonToSelector() {
   } catch (error) {
     console.error('Error injecting button:', error);
     return false;
+  }
+}
+
+/**
+ * Removes the button from the page if it exists
+ */
+function removeExistingButton() {
+  const existingButton = document.getElementById(CONFIG.buttonId);
+  if (existingButton) {
+    console.log('Removing existing button');
+    // Animate removal
+    existingButton.style.opacity = '0';
+    existingButton.style.transform = 'scale(0.9)';
+
+    setTimeout(() => {
+      if (existingButton.parentNode) {
+        existingButton.parentNode.removeChild(existingButton);
+      }
+    }, 300);
+  }
+}
+
+/**
+ * Update button visibility based on settings
+ * @param {boolean} enabled - Whether the button should be visible
+ */
+function updateButtonVisibility(enabled) {
+  isButtonEnabled = enabled;
+  console.log('Button visibility updated:', enabled);
+
+  if (enabled) {
+    // Try to inject button if it's enabled
+    if (!isButtonStillPresent()) {
+      injectButtonToSelector();
+    }
+  } else {
+    // Remove button if it's disabled
+    removeExistingButton();
   }
 }
 
@@ -377,15 +623,46 @@ function setupResponsiveButtonStyles() {
 
 // Message listener
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  if (request.action === "performAction") {
+  if (request.action === "ping") {
+    // Response to ping, confirms content script is loaded
+    sendResponse({status: "alive"});
+  }
+  else if (request.action === "performAction") {
     const currentUrl = window.location.href;
     const freediumUrl = 'https://freedium.cfd/' + currentUrl;
     sendResponse({status: "Redirecting to: " + freediumUrl});
   }
-  if (request.action === "injectButton") {
-    injectButtonToSelector();
+  else if (request.action === "injectButton") {
+    // Only inject if enabled
+    if (isButtonEnabled) {
+      injectButtonToSelector();
+    }
+    sendResponse({success: true});
   }
-  return true;
+  else if (request.action === "updateButtonVisibility") {
+    updateButtonVisibility(request.isEnabled);
+    sendResponse({success: true});
+  }
+  else if (request.action === "updateTheme") {
+    // Update dark mode state
+    isDarkMode = request.darkMode;
+
+    // Update button styling if it exists
+    const existingButton = document.getElementById(CONFIG.buttonId);
+    if (existingButton) {
+      if (isDarkMode) {
+        Object.assign(existingButton.style, CONFIG.darkModeButtonStyle);
+      } else {
+        // Reset to default
+        existingButton.style.backgroundColor = CONFIG.buttonStyle.backgroundColor;
+        existingButton.style.color = CONFIG.buttonStyle.color;
+        existingButton.style.boxShadow = '';
+      }
+    }
+
+    sendResponse({success: true});
+  }
+  return true; // Required for async sendResponse
 });
 
 // Initialization when DOM is loaded
