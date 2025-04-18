@@ -128,13 +128,11 @@ document.addEventListener('DOMContentLoaded', function() {
       document.body.classList.remove('auto-dark-mode');
     } else {
       document.body.classList.remove('dark-mode');
-
-      // Check if system prefers dark mode to add auto-dark-mode class
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.body.classList.add('auto-dark-mode');
-      } else {
-        document.body.classList.remove('auto-dark-mode');
-      }
+      document.body.classList.remove('auto-dark-mode');
+      
+      // Explicitly set light mode styles
+      document.body.style.backgroundColor = '#ffffff';
+      document.body.style.color = '#333333';
     }
 
     // Update theme icon

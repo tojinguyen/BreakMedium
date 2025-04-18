@@ -26,7 +26,13 @@ const CONFIG = {
     transition: 'all 0.3s ease',
     opacity: '0',
     transform: 'scale(0.9)',
-    animation: 'breakMediumButtonAppear 0.5s ease forwards'
+    animation: 'breakMediumButtonAppear 0.5s ease forwards',
+    // Add properties to improve macOS clickability
+    zIndex: '9999',
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+    position: 'relative',
+    outline: 'none'
   },
   buttonHoverStyle: {
     filter: 'brightness(110%)',
@@ -92,6 +98,17 @@ function injectAnimationStyles() {
     #${CONFIG.buttonId}:active {
       transform: scale(0.98);
       filter: brightness(97%);
+    }
+    
+    /* Fix for macOS button click area */
+    #${CONFIG.buttonId}::before {
+      content: '';
+      position: absolute;
+      top: -5px;
+      left: -5px;
+      right: -5px;
+      bottom: -5px;
+      z-index: -1;
     }
   `;
   document.head.appendChild(styleElement);
@@ -172,6 +189,9 @@ function createButton() {
   const button = document.createElement('button');
   button.id = CONFIG.buttonId;
   button.textContent = 'Break Medium';
+  button.setAttribute('type', 'button'); // Explicitly set type
+  button.setAttribute('role', 'button'); // Ensure ARIA role
+  button.tabIndex = 0; // Make focusable for keyboard accessibility
   
   // Apply styles from config
   Object.assign(button.style, CONFIG.buttonStyle);
@@ -181,29 +201,41 @@ function createButton() {
     Object.assign(button.style, CONFIG.darkModeButtonStyle);
   }
 
-  // Add click event to redirect to Freedium
-  button.addEventListener('click', function() {
-    const freediumUrl = 'https://freedium.cfd/' + window.location.href;
+  // Add multiple event listeners to ensure click works - critical fix for macOS
+  ['mousedown', 'mouseup', 'click'].forEach(eventType => {
+    button.addEventListener(eventType, function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Only process the click event
+      if (eventType === 'click') {
+        const freediumUrl = 'https://freedium.cfd/' + window.location.href;
+        
+        // Add click animation - reduced intensity
+        button.style.transform = 'scale(0.98)';
+        button.style.filter = 'brightness(95%)';
+        
+        console.log(`Button clicked! Redirecting to: ${freediumUrl}`);
+        
+        // Get user preference for tab behavior
+        chrome.storage.local.get('settings', function(data) {
+          const openInNewTab = data.settings && data.settings.openInNewTab;
     
-    // Add click animation - reduced intensity
-    button.style.transform = 'scale(0.98)';
-    button.style.filter = 'brightness(95%)';
-    
-    // Get user preference for tab behavior
-    chrome.storage.local.get('settings', function(data) {
-      const openInNewTab = data.settings && data.settings.openInNewTab;
-
-      // Short timeout to see the click effect
-      setTimeout(() => {
-        if (openInNewTab) {
-          // Open in new tab
-          window.open(freediumUrl, '_blank');
-        } else {
-          // Redirect current tab
-          window.location.href = freediumUrl;
-        }
-      }, 100);
-    });
+          // Short timeout to see the click effect
+          setTimeout(() => {
+            if (openInNewTab) {
+              // Open in new tab
+              window.open(freediumUrl, '_blank');
+            } else {
+              // Redirect current tab
+              window.location.href = freediumUrl;
+            }
+          }, 100);
+        });
+      }
+      
+      return false; // Prevent default behavior
+    }, { capture: true, passive: false });
   });
   
   // Add hover and hover out effects - reduced intensity
@@ -419,15 +451,23 @@ function injectButtonToSelector() {
     
     const button = createButton();
     
-    // Insert button as second child if possible
+    // Create a wrapper to ensure better click handling on macOS
+    const buttonWrapper = document.createElement('div');
+    buttonWrapper.style.display = 'inline-block';
+    buttonWrapper.style.position = 'relative';
+    buttonWrapper.style.marginRight = '10px';
+    buttonWrapper.style.zIndex = '9999';
+    buttonWrapper.appendChild(button);
+    
+    // Insert wrapper as second child if possible
     if (targetElement.childNodes.length >= 1) {
       if (targetElement.childNodes[0].nextSibling) {
-        targetElement.insertBefore(button, targetElement.childNodes[0].nextSibling);
+        targetElement.insertBefore(buttonWrapper, targetElement.childNodes[0].nextSibling);
       } else {
-        targetElement.appendChild(button);
+        targetElement.appendChild(buttonWrapper);
       }
     } else {
-      targetElement.appendChild(button);
+      targetElement.appendChild(buttonWrapper);
     }
     
     // Use setTimeout to ensure the animation plays
