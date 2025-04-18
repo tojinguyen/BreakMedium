@@ -39,6 +39,14 @@ body {
   box-shadow: none;
   border: none;
   animation: popupAppear 0.3s ease-out forwards;
+  background-color: #ffffff; /* Ensure light mode background */
+  color: #333333; /* Ensure light mode text color */
+}
+
+/* Explicitly reset styles for light mode */
+body:not(.dark-mode) {
+  background-color: #ffffff;
+  color: #333333;
 }
 
 /* Button styles */
